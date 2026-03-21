@@ -6,7 +6,7 @@ public struct Cell
     public Vector2Int GridPos { get; private set; }
     public float cost;
     public float heat;
-    public Vector2 direction;
+    public Vector3 direction;
 
     public Cell(Vector3 worldPos, Vector2Int gridPos)
     {
@@ -14,6 +14,6 @@ public struct Cell
         GridPos = gridPos;
         cost = 1;
         heat = float.PositiveInfinity;
-        direction = Vector2.zero;
+        direction = Vector3.zero;
     }
 }

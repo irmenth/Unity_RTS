@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Debug = UnityEngine.Debug;
@@ -14,16 +13,17 @@ public class GridController : MonoBehaviour
     [SerializeField] private LayerMask impassibleLayerMask;
     [SerializeField] private LayerMask roughLayerMask;
     [Header("Debug Gizmos")]
-    [SerializeField] private GameObject upArrow;
-    [SerializeField] private GameObject downArrow;
-    [SerializeField] private GameObject leftArrow;
-    [SerializeField] private GameObject rightArrow;
-    [SerializeField] private GameObject upLeftArrow;
-    [SerializeField] private GameObject upRightArrow;
-    [SerializeField] private GameObject downLeftArrow;
-    [SerializeField] private GameObject downRightArrow;
-    [SerializeField] private GameObject cross;
-    [SerializeField] private GameObject flag;
+    [SerializeField] private GameObject dirIndictorPrefab;
+    [SerializeField] private Material upArrow;
+    [SerializeField] private Material downArrow;
+    [SerializeField] private Material leftArrow;
+    [SerializeField] private Material rightArrow;
+    [SerializeField] private Material upLeftArrow;
+    [SerializeField] private Material upRightArrow;
+    [SerializeField] private Material downLeftArrow;
+    [SerializeField] private Material downRightArrow;
+    [SerializeField] private Material cross;
+    [SerializeField] private Material flag;
 
     public FlowField CurFlowField { get; private set; }
 
@@ -71,30 +71,30 @@ public class GridController : MonoBehaviour
                 var dir = CurFlowField.Grid[x, y].direction;
                 var pos = CurFlowField.Grid[x, y].WorldPos + 10f * Vector3.up;
 
-                GameObject texPrefab = null;
-                if (dir == new Vector2(-1, -1))
-                    texPrefab = cross;
-                else if (dir == Vector2.up)
-                    texPrefab = upArrow;
-                else if (dir == Vector2.down)
-                    texPrefab = downArrow;
-                else if (dir == Vector2.left)
-                    texPrefab = leftArrow;
-                else if (dir == Vector2.right)
-                    texPrefab = rightArrow;
-                else if (dir == new Vector2(0.71f, 0.71f))
-                    texPrefab = upRightArrow;
-                else if (dir == new Vector2(-0.71f, 0.71f))
-                    texPrefab = upLeftArrow;
-                else if (dir == new Vector2(0.71f, -0.71f))
-                    texPrefab = downRightArrow;
-                else if (dir == new Vector2(-0.71f, -0.71f))
-                    texPrefab = downLeftArrow;
-                else if (dir == Vector2.zero)
-                    texPrefab = flag;
+                Material dirIndictorMat = null;
+                if (dir == new Vector3(-1, -1, -1))
+                    dirIndictorMat = cross;
+                else if (dir == Vector3.forward)
+                    dirIndictorMat = upArrow;
+                else if (dir == Vector3.back)
+                    dirIndictorMat = downArrow;
+                else if (dir == Vector3.left)
+                    dirIndictorMat = leftArrow;
+                else if (dir == Vector3.right)
+                    dirIndictorMat = rightArrow;
+                else if (dir == new Vector3(0.71f, 0, 0.71f))
+                    dirIndictorMat = upRightArrow;
+                else if (dir == new Vector3(-0.71f, 0, 0.71f))
+                    dirIndictorMat = upLeftArrow;
+                else if (dir == new Vector3(0.71f, 0, -0.71f))
+                    dirIndictorMat = downRightArrow;
+                else if (dir == new Vector3(-0.71f, 0, -0.71f))
+                    dirIndictorMat = downLeftArrow;
+                else if (dir == Vector3.zero)
+                    dirIndictorMat = flag;
 
-                if (texPrefab != null)
-                    Instantiate(texPrefab, pos, Quaternion.Euler(90, 0, 0));
+                if (dirIndictorMat != null && dirIndicatorMeshRenderers[x, y] != null)
+                    dirIndicatorMeshRenderers[x, y].sharedMaterial = dirIndictorMat;
             }
         }
 #endif
@@ -111,16 +111,22 @@ public class GridController : MonoBehaviour
         var ray = Camera.main.ScreenPointToRay(mousePos);
         if (Physics.Raycast(ray, out var hit, 1000f, groundLayerMask))
         {
-            CurFlowField.GenerateHeatMap(hit.point);
+            var mouseGridPos = CurFlowField.WorldToGridPos(hit.point);
+            if (mouseGridPos == new Vector2Int(-1, -1)) return;
+
+            CurFlowField.GenerateHeatMap(mouseGridPos);
             CurFlowField.GenerateFlowField();
         }
 
 #if UNITY_EDITOR
         sw.Stop();
-        Debug.Log($"SetDestination: {sw.ElapsedMilliseconds}ms");
+        Debug.Log($"[GridController] heat map & flow field generation: {sw.ElapsedMilliseconds}ms");
 #endif
     }
 
+#if UNITY_EDITOR
+    private MeshRenderer[,] dirIndicatorMeshRenderers;
+#endif
     private int impassibleLayer, roughLayer;
 
     private void Awake()
@@ -134,6 +140,19 @@ public class GridController : MonoBehaviour
         CurFlowField = new FlowField(gridSize.x, gridSize.y, cellRadius);
         CurFlowField.GenerateGrid();
         CurFlowField.GenerateCostField(costLayerMask, impassibleLayer, roughLayer);
+
+#if UNITY_EDITOR
+        dirIndicatorMeshRenderers = new MeshRenderer[gridSize.x, gridSize.y];
+
+        for (int x = 0; x < gridSize.x; x++)
+        {
+            for (int y = 0; y < gridSize.y; y++)
+            {
+                var pos = CurFlowField.Grid[x, y].WorldPos + 10 * Vector3.up;
+                dirIndicatorMeshRenderers[x, y] = Instantiate(dirIndictorPrefab, pos, Quaternion.Euler(90, 0, 0)).GetComponent<MeshRenderer>();
+            }
+        }
+#endif
 
         InputActionsManager.RTSSetDestination.started += SetDestination;
     }

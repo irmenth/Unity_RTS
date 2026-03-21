@@ -4,10 +4,10 @@ using UnityEngine;
 public class FlowField
 {
     public Cell[,] Grid { get; private set; }
-    private readonly int gridWidth;
-    private readonly int gridHeight;
-    private readonly float cellRadius;
-    private readonly float cellDiameter;
+    public readonly int gridWidth;
+    public readonly int gridHeight;
+    public readonly float cellRadius;
+    public readonly float cellDiameter;
 
     public FlowField(int gridWidth, int gridHeight, float cellRadius)
     {
@@ -53,7 +53,7 @@ public class FlowField
                     }
                     else if (!hasRecordRough && lapBoxHitBuffter[i].gameObject.layer == roughLayer)
                     {
-                        Grid[x, y].cost += 3f;
+                        Grid[x, y].cost += 1f;
                         hasRecordRough = true;
                     }
                 }
@@ -61,20 +61,21 @@ public class FlowField
         }
     }
 
-    private Vector2Int WorldToGridPos(Vector3 worldPos)
+    public Vector2Int WorldToGridPos(Vector3 worldPos)
     {
-        return new Vector2Int(Mathf.FloorToInt(worldPos.x / cellDiameter), Mathf.FloorToInt(worldPos.z / cellDiameter));
+        var gridPos = new Vector2Int(Mathf.FloorToInt(worldPos.x / cellDiameter), Mathf.FloorToInt(worldPos.z / cellDiameter));
+        if (gridPos.x < 0 || gridPos.x >= gridWidth || gridPos.y < 0 || gridPos.y >= gridHeight) return new Vector2Int(-1, -1);
+        return gridPos;
     }
 
     private readonly Queue<int> openList = new();
 
-    public void GenerateHeatMap(Vector3 mousePos)
+    public void GenerateHeatMap(Vector2Int destinationGridPos)
     {
         openList.Clear();
         var closedList = new bool[gridWidth * gridHeight];
 
-        var mouseGridPos = WorldToGridPos(mousePos);
-        if (float.IsInfinity(Grid[mouseGridPos.x, mouseGridPos.y].cost)) return;
+        if (float.IsInfinity(Grid[destinationGridPos.x, destinationGridPos.y].cost)) return;
 
         for (int x = 0; x < gridWidth; x++)
         {
@@ -83,8 +84,8 @@ public class FlowField
                 Grid[x, y].heat = float.PositiveInfinity;
             }
         }
-        Grid[mouseGridPos.x, mouseGridPos.y].heat = 0;
-        openList.Enqueue(mouseGridPos.x * gridHeight + mouseGridPos.y);
+        Grid[destinationGridPos.x, destinationGridPos.y].heat = 0;
+        openList.Enqueue(destinationGridPos.x * gridHeight + destinationGridPos.y);
 
         while (openList.Count > 0)
         {
@@ -141,12 +142,12 @@ public class FlowField
             {
                 if (float.IsInfinity(Grid[x, y].cost))
                 {
-                    Grid[x, y].direction = new(-1, -1);
+                    Grid[x, y].direction = -1 * Vector3.one;
                     continue;
                 }
 
                 var minHeat = Grid[x, y].heat;
-                var dir = Vector2.zero;
+                var dir = Vector2Int.zero;
                 for (int i = -1; i <= 1; i++)
                 {
                     for (int j = -1; j <= 1; j++)
@@ -165,15 +166,15 @@ public class FlowField
                 }
                 if (Mathf.Approximately(minHeat, Grid[x, y].heat)) continue;
 
-                Grid[x, y].direction = dir;
+                Grid[x, y].direction.Set(dir.x, 0, dir.y);
                 if (dir == new Vector2Int(1, 1))
-                    Grid[x, y].direction.Set(0.71f, 0.71f);
+                    Grid[x, y].direction.Set(0.71f, 0, 0.71f);
                 else if (dir == new Vector2Int(-1, 1))
-                    Grid[x, y].direction.Set(-0.71f, 0.71f);
+                    Grid[x, y].direction.Set(-0.71f, 0, 0.71f);
                 else if (dir == new Vector2Int(1, -1))
-                    Grid[x, y].direction.Set(0.71f, -0.71f);
+                    Grid[x, y].direction.Set(0.71f, 0, -0.71f);
                 else if (dir == new Vector2Int(-1, -1))
-                    Grid[x, y].direction.Set(-0.71f, -0.71f);
+                    Grid[x, y].direction.Set(-0.71f, 0, -0.71f);
             }
         }
     }
