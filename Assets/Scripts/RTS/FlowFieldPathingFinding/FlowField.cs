@@ -61,6 +61,12 @@ public class FlowField
         }
     }
 
+    /// <summary>
+    /// </summary>
+    /// <param name="worldPos"></param>
+    /// <returns>
+    /// (-1, -1) if out of range
+    /// </returns>
     public Vector2Int WorldToGridPos(Vector3 worldPos)
     {
         var gridPos = new Vector2Int(Mathf.FloorToInt(worldPos.x / cellDiameter), Mathf.FloorToInt(worldPos.z / cellDiameter));
@@ -132,7 +138,7 @@ public class FlowField
         {
             for (int y = 0; y < gridHeight; y++)
             {
-                Grid[x, y].direction = Vector2.zero;
+                Grid[x, y].direction = Vector3.zero;
             }
         }
 
@@ -166,15 +172,7 @@ public class FlowField
                 }
                 if (Mathf.Approximately(minHeat, Grid[x, y].heat)) continue;
 
-                Grid[x, y].direction.Set(dir.x, 0, dir.y);
-                if (dir == new Vector2Int(1, 1))
-                    Grid[x, y].direction.Set(0.71f, 0, 0.71f);
-                else if (dir == new Vector2Int(-1, 1))
-                    Grid[x, y].direction.Set(-0.71f, 0, 0.71f);
-                else if (dir == new Vector2Int(1, -1))
-                    Grid[x, y].direction.Set(0.71f, 0, -0.71f);
-                else if (dir == new Vector2Int(-1, -1))
-                    Grid[x, y].direction.Set(-0.71f, 0, -0.71f);
+                Grid[x, y].direction = new Vector3(dir.x, 0, dir.y).normalized;
             }
         }
     }

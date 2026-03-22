@@ -72,7 +72,7 @@ public class GridController : MonoBehaviour
                 var pos = CurFlowField.Grid[x, y].WorldPos + 10f * Vector3.up;
 
                 Material dirIndictorMat = null;
-                if (dir == new Vector3(-1, -1, -1))
+                if (dir == -1 * Vector3.one)
                     dirIndictorMat = cross;
                 else if (dir == Vector3.forward)
                     dirIndictorMat = upArrow;
@@ -82,13 +82,13 @@ public class GridController : MonoBehaviour
                     dirIndictorMat = leftArrow;
                 else if (dir == Vector3.right)
                     dirIndictorMat = rightArrow;
-                else if (dir == new Vector3(0.71f, 0, 0.71f))
+                else if (dir == new Vector3(1, 0, 1).normalized)
                     dirIndictorMat = upRightArrow;
-                else if (dir == new Vector3(-0.71f, 0, 0.71f))
+                else if (dir == new Vector3(-1, 0, 1).normalized)
                     dirIndictorMat = upLeftArrow;
-                else if (dir == new Vector3(0.71f, 0, -0.71f))
+                else if (dir == new Vector3(1, 0, -1).normalized)
                     dirIndictorMat = downRightArrow;
-                else if (dir == new Vector3(-0.71f, 0, -0.71f))
+                else if (dir == new Vector3(-1, 0, -1).normalized)
                     dirIndictorMat = downLeftArrow;
                 else if (dir == Vector3.zero)
                     dirIndictorMat = flag;

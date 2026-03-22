@@ -968,6 +968,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gridCC: {fileID: 1658818113}
+  unitRadius: 0.1
   moveSpeed: 4
 --- !u!1 &802953186
 GameObject:
