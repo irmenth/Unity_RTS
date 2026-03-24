@@ -63,6 +63,16 @@ public class GridController : MonoBehaviour
         //     }
         // }
 
+        // // Draw Obstacle Count
+        // for (int x = 0; x < gridSize.x; x++)
+        // {
+        //     for (int y = 0; y < gridSize.y; y++)
+        //     {
+        //         var pos = CurFlowField.Grid[x, y].WorldPos + cellRadius * Vector3.left;
+        //         UnityEditor.Handles.Label(pos, CurFlowField.Grid[x, y].obstacleList.Count.ToString());
+        //     }
+        // }
+
         // Draw Flow Field
         for (int x = 0; x < gridSize.x; x++)
         {

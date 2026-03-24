@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public struct Cell
@@ -13,6 +14,7 @@ public struct Cell
     /// -1 * Vector2.one means impassible
     /// </summary>
     public Vector2 direction;
+    public readonly List<Obstacles> obstacleList;
 
     public Cell(Vector3 worldPos, Vector2Int gridPos)
     {
@@ -21,5 +23,6 @@ public struct Cell
         cost = 1;
         heat = float.PositiveInfinity;
         direction = Vector2.zero;
+        obstacleList = new List<Obstacles>();
     }
 }

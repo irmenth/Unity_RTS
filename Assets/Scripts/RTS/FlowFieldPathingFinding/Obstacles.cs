@@ -1,34 +1,53 @@
 using UnityEngine;
 
+public enum ObstacleType
+{
+    Circle,
+    Rectangle
+}
+
+public class Obstacles
+{
+    public ObstacleType type;
+    public Circle circle;
+    public Rectangle rect;
+
+    public Obstacles(ObstacleType type, Circle circle, Rectangle rect)
+    {
+        this.type = type;
+        this.circle = circle;
+        this.rect = rect;
+    }
+}
+
 public struct Circle
 {
-    public Vector2 center;
+    public Transform transform;
     public float radius;
 
-    public Circle(Vector2 center, float radius)
+    public Circle(Transform transform, float radius)
     {
-        this.center = center;
+        this.transform = transform;
         this.radius = radius;
     }
 }
 
 public struct Rectangle
 {
-    public Vector2 center;
-    public Vector2 size;
-    public float angle;
+    public Transform transform;
     public Vector2[] verteices;
 
-    public Rectangle(Vector2 center, Vector2 size, float angle)
+    public Rectangle(Transform transform)
     {
-        this.center = center;
-        this.size = size;
-        this.angle = angle;
+        this.transform = transform;
+        var center = UsefulUtils.V3ToV2(transform.position);
+        var size = UsefulUtils.V3ToV2(transform.localScale);
+        var rad = transform.rotation.eulerAngles.y * Mathf.Deg2Rad;
 
         verteices = new Vector2[4];
-        verteices[0] = -0.5f * size.x * Mathf.Cos(angle) * Vector2.right + 0.5f * size.y * Mathf.Sin(angle) * Vector2.up + center;
-        verteices[1] = 0.5f * size.x * Mathf.Cos(angle) * Vector2.right + 0.5f * size.y * Mathf.Sin(angle) * Vector2.up + center;
-        verteices[2] = 0.5f * size.x * Mathf.Cos(angle) * Vector2.right - 0.5f * size.y * Mathf.Sin(angle) * Vector2.up + center;
-        verteices[3] = -0.5f * size.x * Mathf.Cos(angle) * Vector2.right - 0.5f * size.y * Mathf.Sin(angle) * Vector2.up + center;
+        verteices[0] = -0.5f * size.x * Mathf.Cos(rad) * Vector2.right + 0.5f * size.y * Mathf.Sin(rad) * Vector2.up + center;
+        verteices[1] = 0.5f * size.x * Mathf.Cos(rad) * Vector2.right + 0.5f * size.y * Mathf.Sin(rad) * Vector2.up + center;
+        verteices[2] = 0.5f * size.x * Mathf.Cos(rad) * Vector2.right - 0.5f * size.y * Mathf.Sin(rad) * Vector2.up + center;
+        verteices[3] = -0.5f * size.x * Mathf.Cos(rad) * Vector2.right - 0.5f * size.y * Mathf.Sin(rad) * Vector2.up + center;
     }
 }

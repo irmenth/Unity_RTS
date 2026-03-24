@@ -32,6 +32,7 @@ public class FlowField
     }
 
     private readonly Collider[] lapBoxHitBuffter = new Collider[20];
+    private readonly Dictionary<Collider, ObstacleCollider> obstacleColliders = new();
 
     public void GenerateCostField(LayerMask costLayerMask, int impassibleLayer, int roughLayer)
     {
@@ -45,7 +46,18 @@ public class FlowField
                 bool hasRecordRough = false, hasRecordImpassible = false;
                 for (int i = 0; i < hitCount; i++)
                 {
-                    if (float.IsInfinity(Grid[x, y].cost)) break;
+                    if (lapBoxHitBuffter[i].gameObject.layer == impassibleLayer)
+                    {
+                        if (!obstacleColliders.TryGetValue(lapBoxHitBuffter[i], out var col))
+                        {
+                            col = lapBoxHitBuffter[i].GetComponent<ObstacleCollider>();
+                            obstacleColliders.Add(lapBoxHitBuffter[i], col);
+                        }
+                        if (!Grid[x, y].obstacleList.Contains(col.obstacle))
+                            Grid[x, y].obstacleList.Add(col.obstacle);
+                    }
+
+                    if (float.IsInfinity(Grid[x, y].cost)) continue;
 
                     if (!hasRecordImpassible && lapBoxHitBuffter[i].gameObject.layer == impassibleLayer)
                     {
@@ -105,6 +117,16 @@ public class FlowField
         var gridPos = new Vector2Int(Mathf.FloorToInt(worldPos.x / cellDiameter), Mathf.FloorToInt(worldPos.z / cellDiameter));
         if (gridPos.x < 0 || gridPos.x >= gridWidth || gridPos.y < 0 || gridPos.y >= gridHeight) return new Vector2Int(-1, -1);
         return gridPos;
+    }
+    /// <summary>
+    /// </summary>
+    /// <param name="worldPos"></param>
+    /// <returns>
+    /// (-1, -1) if out of range
+    /// </returns>
+    public Vector2Int WorldToGridPos(Vector2 worldPos)
+    {
+        return WorldToGridPos(UsefulUtils.V2ToV3(worldPos));
     }
 
     private readonly Queue<int> openList = new();
