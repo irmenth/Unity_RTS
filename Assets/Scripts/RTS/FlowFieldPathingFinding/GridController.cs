@@ -5,9 +5,11 @@ using Debug = UnityEngine.Debug;
 
 public class GridController : MonoBehaviour
 {
-    [Header("Game Logic")]
-    [SerializeField] private Vector2Int gridSize;
-    [SerializeField] private float cellRadius = 0.5f;
+    [Header("In Game")]
+    [SerializeField] private Vector2Int directionGridSize;
+    [SerializeField] private float directionCellRadius = 0.2f;
+    [SerializeField] private Vector2Int obstacleGridSize;
+    [SerializeField] private float obstacleCellRadius = 0.5f;
     [SerializeField] private LayerMask costLayerMask;
     [SerializeField] private LayerMask groundLayerMask;
     [SerializeField] private LayerMask impassibleLayerMask;
@@ -33,13 +35,13 @@ public class GridController : MonoBehaviour
 #if UNITY_EDITOR
         if (CurFlowField == null) return;
 
-        // Draw grid
+        // Draw direction grid
         Gizmos.color = Color.yellow;
-        for (int x = 0; x < gridSize.x; x++)
+        for (int x = 0; x < directionGridSize.x; x++)
         {
-            for (int y = 0; y < gridSize.y; y++)
+            for (int y = 0; y < directionGridSize.y; y++)
             {
-                Gizmos.DrawWireCube(CurFlowField.Grid[x, y].WorldPos, cellRadius * 2f * Vector3.one);
+                Gizmos.DrawWireCube(CurFlowField.DirGrid[x, y].GetWorldPos(), directionCellRadius * 2f * Vector3.one);
             }
         }
 
@@ -48,8 +50,8 @@ public class GridController : MonoBehaviour
         // {
         //     for (int y = 0; y < gridSize.y; y++)
         //     {
-        //         var pos = CurFlowField.Grid[x, y].WorldPos + cellRadius * Vector3.left;
-        //         UnityEditor.Handles.Label(pos, CurFlowField.Grid[x, y].cost.ToString("F1"));
+        //         var pos = CurFlowField.DirGrid[x, y].GetWorldPos() + cellRadius * Vector3.left;
+        //         UnityEditor.Handles.Label(pos, CurFlowField.DirGrid[x, y].cost.ToString("F1"));
         //     }
         // }
 
@@ -58,8 +60,8 @@ public class GridController : MonoBehaviour
         // {
         //     for (int y = 0; y < gridSize.y; y++)
         //     {
-        //         var pos = CurFlowField.Grid[x, y].WorldPos + cellRadius * Vector3.left;
-        //         UnityEditor.Handles.Label(pos, CurFlowField.Grid[x, y].heat.ToString("F1"));
+        //         var pos = CurFlowField.DirGrid[x, y].GetWorldPos() + cellRadius * Vector3.left;
+        //         UnityEditor.Handles.Label(pos, CurFlowField.DirGrid[x, y].heat.ToString("F1"));
         //     }
         // }
 
@@ -68,18 +70,18 @@ public class GridController : MonoBehaviour
         // {
         //     for (int y = 0; y < gridSize.y; y++)
         //     {
-        //         var pos = CurFlowField.Grid[x, y].WorldPos + cellRadius * Vector3.left;
-        //         UnityEditor.Handles.Label(pos, CurFlowField.Grid[x, y].obstacleList.Count.ToString());
+        //         var pos = CurFlowField.ObstacleGrid[x, y].GetWorldPos() + cellRadius * Vector3.left;
+        //         UnityEditor.Handles.Label(pos, CurFlowField.ObstacleGrid[x, y].obstacleList.Count.ToString());
         //     }
         // }
 
         // Draw Flow Field
-        for (int x = 0; x < gridSize.x; x++)
+        for (int x = 0; x < directionGridSize.x; x++)
         {
-            for (int y = 0; y < gridSize.y; y++)
+            for (int y = 0; y < directionGridSize.y; y++)
             {
-                var dir = CurFlowField.Grid[x, y].direction;
-                var pos = CurFlowField.Grid[x, y].WorldPos + 10f * Vector3.up;
+                var dir = CurFlowField.DirGrid[x, y].direction;
+                var pos = CurFlowField.DirGrid[x, y].GetWorldPos() + 10f * Vector3.up;
 
                 Material dirIndictorMat = null;
                 if (dir == -Vector2.one)
@@ -121,11 +123,13 @@ public class GridController : MonoBehaviour
         var ray = Camera.main.ScreenPointToRay(mousePos);
         if (Physics.Raycast(ray, out var hit, 1000f, groundLayerMask))
         {
-            var mouseGridPos = CurFlowField.WorldToGridPos(hit.point);
-            if (mouseGridPos == new Vector2Int(-1, -1)) return;
+            var mouseGridPos = CurFlowField.WorldToDirGridPos(hit.point);
+            if (mouseGridPos == -Vector2Int.one) return;
 
             CurFlowField.GenerateHeatMap(mouseGridPos);
             CurFlowField.GenerateFlowField();
+
+            EventBus.Publish(new MoveToEvent(CurFlowField.DirGrid[mouseGridPos.x, mouseGridPos.y].GetWorldPos()));
         }
 
 #if UNITY_EDITOR
@@ -147,18 +151,19 @@ public class GridController : MonoBehaviour
 
     private void Start()
     {
-        CurFlowField = new FlowField(gridSize.x, gridSize.y, cellRadius);
+        CurFlowField = new FlowField(directionGridSize.x, directionGridSize.y, directionCellRadius, obstacleGridSize.x, obstacleGridSize.y, obstacleCellRadius);
         CurFlowField.GenerateGrid();
         CurFlowField.GenerateCostField(costLayerMask, impassibleLayer, roughLayer);
+        CurFlowField.GenerateObstacleMap(impassibleLayer);
 
 #if UNITY_EDITOR
-        dirIndicatorMeshRenderers = new MeshRenderer[gridSize.x, gridSize.y];
+        dirIndicatorMeshRenderers = new MeshRenderer[directionGridSize.x, directionGridSize.y];
 
-        for (int x = 0; x < gridSize.x; x++)
+        for (int x = 0; x < directionGridSize.x; x++)
         {
-            for (int y = 0; y < gridSize.y; y++)
+            for (int y = 0; y < directionGridSize.y; y++)
             {
-                var pos = CurFlowField.Grid[x, y].WorldPos + 10 * Vector3.up;
+                var pos = CurFlowField.DirGrid[x, y].GetWorldPos() + 10 * Vector3.up;
                 dirIndicatorMeshRenderers[x, y] = Instantiate(dirIndictorPrefab, pos, Quaternion.Euler(90, 0, 0)).GetComponent<MeshRenderer>();
             }
         }

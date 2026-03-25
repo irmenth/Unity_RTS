@@ -3,119 +3,56 @@ using UnityEngine;
 
 public class FlowField
 {
-    public Cell[,] Grid { get; private set; }
-    public readonly int gridWidth;
-    public readonly int gridHeight;
-    public readonly float cellRadius;
-    public readonly float cellDiameter;
+    public DirCell[,] DirGrid { get; private set; }
+    public ObstacleCell[,] ObstacleGrid { get; private set; }
+    public readonly int dgWidth, dgHeight, ogWidth, ogHeight;
+    public readonly float dcRadius, dcDiameter, ocRadius, ocDiameter;
 
-    public FlowField(int gridWidth, int gridHeight, float cellRadius)
+    /// <summary>
+    /// </summary>
+    /// <param name="dgWidth">
+    /// Width of the DirGrid
+    /// </param>
+    /// <param name="dgHeight">
+    /// Height of the DirGrid
+    /// </param>
+    /// <param name="dcRadius">
+    /// Radius of the DirCell
+    /// </param>
+    /// <param name="ogWidth">
+    /// Width of the ObstacleGrid
+    /// </param>
+    /// <param name="ogHeight">
+    /// Height of the ObstacleGrid
+    /// </param>
+    /// <param name="ocRadius">
+    /// Radius of the ObstacleCell
+    /// </param>
+    public FlowField(int dgWidth, int dgHeight, float dcRadius, int ogWidth, int ogHeight, float ocRadius)
     {
-        this.gridWidth = gridWidth;
-        this.gridHeight = gridHeight;
-        this.cellRadius = cellRadius;
-        this.cellDiameter = cellRadius * 2f;
-        Grid = new Cell[gridWidth, gridHeight];
-    }
+        this.dgWidth = dgWidth;
+        this.dgHeight = dgHeight;
+        this.dcRadius = dcRadius;
+        dcDiameter = dcRadius * 2f;
+        DirGrid = new DirCell[dgWidth, dgHeight];
 
-    public void GenerateGrid()
-    {
-        for (int x = 0; x < gridWidth; x++)
-        {
-            for (int y = 0; y < gridHeight; y++)
-            {
-                var worldPos = new Vector3(cellDiameter * x + cellRadius, 0, cellDiameter * y + cellRadius);
-                var gridPos = new Vector2Int(x, y);
-                Grid[x, y] = new Cell(worldPos, gridPos);
-            }
-        }
-    }
-
-    private readonly Collider[] lapBoxHitBuffter = new Collider[20];
-    private readonly Dictionary<Collider, ObstacleCollider> obstacleColliders = new();
-
-    public void GenerateCostField(LayerMask costLayerMask, int impassibleLayer, int roughLayer)
-    {
-        var subCellDiameter = cellDiameter / 3f;
-        for (int x = 0; x < gridWidth; x++)
-        {
-            for (int y = 0; y < gridHeight; y++)
-            {
-                int hitCount = Physics.OverlapBoxNonAlloc(Grid[x, y].WorldPos, Vector3.one * cellRadius, lapBoxHitBuffter, Quaternion.identity, costLayerMask);
-
-                bool hasRecordRough = false, hasRecordImpassible = false;
-                for (int i = 0; i < hitCount; i++)
-                {
-                    if (lapBoxHitBuffter[i].gameObject.layer == impassibleLayer)
-                    {
-                        if (!obstacleColliders.TryGetValue(lapBoxHitBuffter[i], out var col))
-                        {
-                            col = lapBoxHitBuffter[i].GetComponent<ObstacleCollider>();
-                            obstacleColliders.Add(lapBoxHitBuffter[i], col);
-                        }
-                        if (!Grid[x, y].obstacleList.Contains(col.obstacle))
-                            Grid[x, y].obstacleList.Add(col.obstacle);
-                    }
-
-                    if (float.IsInfinity(Grid[x, y].cost)) continue;
-
-                    if (!hasRecordImpassible && lapBoxHitBuffter[i].gameObject.layer == impassibleLayer)
-                    {
-                        var subCellHitCount = 0;
-                        for (int m = -1; m <= 1; m++)
-                        {
-                            for (int n = -1; n <= 1; n++)
-                            {
-                                if (subCellHitCount >= 4) break;
-
-                                var curSubCellPos = Grid[x, y].WorldPos + new Vector3(m * subCellDiameter, -10, n * subCellDiameter);
-                                if (Physics.Raycast(curSubCellPos, Vector3.up, out var hit, 100f, 1 << impassibleLayer))
-                                    subCellHitCount++;
-                            }
-                        }
-
-                        if (subCellHitCount >= 4)
-                        {
-                            Grid[x, y].cost += float.PositiveInfinity;
-                            hasRecordImpassible = true;
-                        }
-                    }
-                    else if (!hasRecordRough && lapBoxHitBuffter[i].gameObject.layer == roughLayer)
-                    {
-                        var subCellHitCount = 0;
-                        for (int m = -1; m <= 1; m++)
-                        {
-                            for (int n = -1; n <= 1; n++)
-                            {
-                                if (subCellHitCount >= 4) break;
-
-                                var curSubCellPos = Grid[x, y].WorldPos + new Vector3(m * subCellDiameter, -10, n * subCellDiameter);
-                                if (Physics.Raycast(curSubCellPos, Vector3.up, out var hit, 100f, 1 << roughLayer))
-                                    subCellHitCount++;
-                            }
-                        }
-
-                        if (subCellHitCount >= 4)
-                        {
-                            Grid[x, y].cost += 1f;
-                            hasRecordRough = true;
-                        }
-                    }
-                }
-            }
-        }
+        this.ogWidth = ogWidth;
+        this.ogHeight = ogHeight;
+        this.ocRadius = ocRadius;
+        ocDiameter = ocRadius * 2f;
+        ObstacleGrid = new ObstacleCell[ogWidth, ogHeight];
     }
 
     /// <summary>
     /// </summary>
     /// <param name="worldPos"></param>
     /// <returns>
-    /// (-1, -1) if out of range
+    /// -1 * Vector2Int.one if out of range
     /// </returns>
-    public Vector2Int WorldToGridPos(Vector3 worldPos)
+    public Vector2Int WorldToDirGridPos(Vector3 worldPos)
     {
-        var gridPos = new Vector2Int(Mathf.FloorToInt(worldPos.x / cellDiameter), Mathf.FloorToInt(worldPos.z / cellDiameter));
-        if (gridPos.x < 0 || gridPos.x >= gridWidth || gridPos.y < 0 || gridPos.y >= gridHeight) return new Vector2Int(-1, -1);
+        var gridPos = new Vector2Int(Mathf.FloorToInt(worldPos.x / dcDiameter), Mathf.FloorToInt(worldPos.z / dcDiameter));
+        if (gridPos.x < 0 || gridPos.x >= dgWidth || gridPos.y < 0 || gridPos.y >= dgHeight) return new Vector2Int(-1, -1);
         return gridPos;
     }
     /// <summary>
@@ -126,7 +63,116 @@ public class FlowField
     /// </returns>
     public Vector2Int WorldToGridPos(Vector2 worldPos)
     {
-        return WorldToGridPos(UsefulUtils.V2ToV3(worldPos));
+        return WorldToDirGridPos(UsefulUtils.V2ToV3(worldPos));
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <param name="worldPos"></param>
+    /// <returns>
+    /// -1 * Vector2Int.one if out of range
+    /// </returns>
+    public Vector2Int WorldToObstacleGridPos(Vector3 worldPos)
+    {
+        var gridPos = new Vector2Int(Mathf.FloorToInt(worldPos.x / ocDiameter), Mathf.FloorToInt(worldPos.z / ocDiameter));
+        if (gridPos.x < 0 || gridPos.x >= ogWidth || gridPos.y < 0 || gridPos.y >= ogHeight) return new Vector2Int(-1, -1);
+        return gridPos;
+    }
+    /// <summary>
+    /// </summary>
+    /// <param name="worldPos"></param>
+    /// <returns>
+    /// -1 * Vector2Int.one if out of range
+    /// </returns>
+    public Vector2Int WorldToObstacleGridPos(Vector2 worldPos)
+    {
+        return WorldToObstacleGridPos(UsefulUtils.V2ToV3(worldPos));
+    }
+
+    public void GenerateGrid()
+    {
+        for (int x = 0; x < dgWidth; x++)
+        {
+            for (int y = 0; y < dgHeight; y++)
+            {
+                var worldPos = new Vector3(dcDiameter * x + dcRadius, 0, dcDiameter * y + dcRadius);
+                var gridPos = new Vector2Int(x, y);
+                DirGrid[x, y] = new DirCell(worldPos, gridPos);
+            }
+        }
+
+        for (int x = 0; x < ogWidth; x++)
+        {
+            for (int y = 0; y < ogHeight; y++)
+            {
+                var worldPos = new Vector3(ocDiameter * x + ocRadius, 0, ocDiameter * y + ocRadius);
+                var gridPos = new Vector2Int(x, y);
+                ObstacleGrid[x, y] = new ObstacleCell(worldPos, gridPos);
+            }
+        }
+    }
+
+    private readonly Collider[] cfBoxHitBuffter = new Collider[10];
+
+    public void GenerateCostField(LayerMask costLayerMask, int impassibleLayer, int roughLayer)
+    {
+        var subCellDiameter = dcDiameter / 3f;
+        for (int x = 0; x < dgWidth; x++)
+        {
+            for (int y = 0; y < dgHeight; y++)
+            {
+                int hitCount = Physics.OverlapBoxNonAlloc(DirGrid[x, y].GetWorldPos(), Vector3.one * dcRadius, cfBoxHitBuffter, Quaternion.identity, costLayerMask);
+
+                bool hasRecordRough = false, hasRecordImpassible = false;
+                for (int i = 0; i < hitCount; i++)
+                {
+                    if (float.IsInfinity(DirGrid[x, y].cost)) continue;
+
+                    if (!hasRecordImpassible && cfBoxHitBuffter[i].gameObject.layer == impassibleLayer)
+                    {
+                        var subCellHitCount = 0;
+                        for (int m = -1; m <= 1; m++)
+                        {
+                            for (int n = -1; n <= 1; n++)
+                            {
+                                if (subCellHitCount >= 4) break;
+
+                                var curSubCellPos = DirGrid[x, y].GetWorldPos() + new Vector3(m * subCellDiameter, -10, n * subCellDiameter);
+                                if (Physics.Raycast(curSubCellPos, Vector3.up, out var hit, 100f, 1 << impassibleLayer))
+                                    subCellHitCount++;
+                            }
+                        }
+
+                        if (subCellHitCount >= 4)
+                        {
+                            DirGrid[x, y].cost += float.PositiveInfinity;
+                            hasRecordImpassible = true;
+                        }
+                    }
+                    else if (!hasRecordRough && cfBoxHitBuffter[i].gameObject.layer == roughLayer)
+                    {
+                        var subCellHitCount = 0;
+                        for (int m = -1; m <= 1; m++)
+                        {
+                            for (int n = -1; n <= 1; n++)
+                            {
+                                if (subCellHitCount >= 4) break;
+
+                                var curSubCellPos = DirGrid[x, y].GetWorldPos() + new Vector3(m * subCellDiameter, -10, n * subCellDiameter);
+                                if (Physics.Raycast(curSubCellPos, Vector3.up, out var hit, 100f, 1 << roughLayer))
+                                    subCellHitCount++;
+                            }
+                        }
+
+                        if (subCellHitCount >= 4)
+                        {
+                            DirGrid[x, y].cost += 1f;
+                            hasRecordRough = true;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private readonly Queue<int> openList = new();
@@ -134,24 +180,24 @@ public class FlowField
     public void GenerateHeatMap(Vector2Int destinationGridPos)
     {
         openList.Clear();
-        var closedList = new bool[gridWidth * gridHeight];
+        var closedList = new bool[dgWidth * dgHeight];
 
-        if (float.IsInfinity(Grid[destinationGridPos.x, destinationGridPos.y].cost)) return;
+        if (float.IsInfinity(DirGrid[destinationGridPos.x, destinationGridPos.y].cost)) return;
 
-        for (int x = 0; x < gridWidth; x++)
+        for (int x = 0; x < dgWidth; x++)
         {
-            for (int y = 0; y < gridHeight; y++)
+            for (int y = 0; y < dgHeight; y++)
             {
-                Grid[x, y].heat = float.PositiveInfinity;
+                DirGrid[x, y].heat = float.PositiveInfinity;
             }
         }
-        Grid[destinationGridPos.x, destinationGridPos.y].heat = 0;
-        openList.Enqueue(destinationGridPos.x * gridHeight + destinationGridPos.y);
+        DirGrid[destinationGridPos.x, destinationGridPos.y].heat = 0;
+        openList.Enqueue(destinationGridPos.x * dgHeight + destinationGridPos.y);
 
         while (openList.Count > 0)
         {
             var curIndex = openList.Dequeue();
-            var curGridPos = new Vector2Int(curIndex / gridHeight, curIndex % gridHeight);
+            var curGridPos = new Vector2Int(curIndex / dgHeight, curIndex % dgHeight);
             closedList[curIndex] = true;
 
             for (int i = -1; i <= 1; i++)
@@ -159,25 +205,25 @@ public class FlowField
                 for (int j = -1; j <= 1; j++)
                 {
                     if (i == 0 && j == 0) continue;
-                    Vector2Int newGridPos = new(Grid[curGridPos.x, curGridPos.y].GridPos.x + i, Grid[curGridPos.x, curGridPos.y].GridPos.y + j);
-                    var newIndex = newGridPos.x * gridHeight + newGridPos.y;
-                    if (newGridPos.x < 0 || newGridPos.x >= gridWidth || newGridPos.y < 0 || newGridPos.y >= gridHeight) continue;
-                    if (closedList[newGridPos.x * gridHeight + newGridPos.y]) continue;
+                    Vector2Int newGridPos = new(DirGrid[curGridPos.x, curGridPos.y].GetGridPos().x + i, DirGrid[curGridPos.x, curGridPos.y].GetGridPos().y + j);
+                    var newIndex = newGridPos.x * dgHeight + newGridPos.y;
+                    if (newGridPos.x < 0 || newGridPos.x >= dgWidth || newGridPos.y < 0 || newGridPos.y >= dgHeight) continue;
+                    if (closedList[newGridPos.x * dgHeight + newGridPos.y]) continue;
 
-                    if (float.IsInfinity(Grid[newGridPos.x, newGridPos.y].cost))
+                    if (float.IsInfinity(DirGrid[newGridPos.x, newGridPos.y].cost))
                     {
                         closedList[newIndex] = true;
                         continue;
                     }
 
-                    var moveCost = Grid[newGridPos.x, newGridPos.y].cost;
+                    var moveCost = DirGrid[newGridPos.x, newGridPos.y].cost;
                     if (i * j != 0)
                         moveCost *= 1.4f;
 
-                    var newCost = Grid[curGridPos.x, curGridPos.y].heat + moveCost;
-                    if (newCost < Grid[newGridPos.x, newGridPos.y].heat)
+                    var newCost = DirGrid[curGridPos.x, curGridPos.y].heat + moveCost;
+                    if (newCost < DirGrid[newGridPos.x, newGridPos.y].heat)
                     {
-                        Grid[newGridPos.x, newGridPos.y].heat = newCost;
+                        DirGrid[newGridPos.x, newGridPos.y].heat = newCost;
                         if (!openList.Contains(newIndex))
                             openList.Enqueue(newIndex);
                     }
@@ -189,25 +235,25 @@ public class FlowField
 
     public void GenerateFlowField()
     {
-        for (int x = 0; x < gridWidth; x++)
+        for (int x = 0; x < dgWidth; x++)
         {
-            for (int y = 0; y < gridHeight; y++)
+            for (int y = 0; y < dgHeight; y++)
             {
-                Grid[x, y].direction = Vector2.zero;
+                DirGrid[x, y].direction = Vector2.zero;
             }
         }
 
-        for (int x = 0; x < gridWidth; x++)
+        for (int x = 0; x < dgWidth; x++)
         {
-            for (int y = 0; y < gridHeight; y++)
+            for (int y = 0; y < dgHeight; y++)
             {
-                if (float.IsInfinity(Grid[x, y].cost))
+                if (float.IsInfinity(DirGrid[x, y].cost))
                 {
-                    Grid[x, y].direction = -Vector2.one;
+                    DirGrid[x, y].direction = -Vector2.one;
                     continue;
                 }
 
-                var minHeat = Grid[x, y].heat;
+                var minHeat = DirGrid[x, y].heat;
                 var dir = Vector2Int.zero;
                 for (int i = -1; i <= 1; i++)
                 {
@@ -215,9 +261,9 @@ public class FlowField
                     {
                         if (i == 0 && j == 0) continue;
                         var newGridPos = new Vector2Int(x + i, y + j);
-                        if (newGridPos.x < 0 || newGridPos.x >= gridWidth || newGridPos.y < 0 || newGridPos.y >= gridHeight) continue;
+                        if (newGridPos.x < 0 || newGridPos.x >= dgWidth || newGridPos.y < 0 || newGridPos.y >= dgHeight) continue;
 
-                        var newHeat = Grid[newGridPos.x, newGridPos.y].heat;
+                        var newHeat = DirGrid[newGridPos.x, newGridPos.y].heat;
                         if (newHeat < minHeat)
                         {
                             minHeat = newHeat;
@@ -225,17 +271,44 @@ public class FlowField
                         }
                     }
                 }
-                if (Mathf.Approximately(minHeat, Grid[x, y].heat)) continue;
+                if (Mathf.Approximately(minHeat, DirGrid[x, y].heat)) continue;
 
-                Grid[x, y].direction = dir;
+                DirGrid[x, y].direction = dir;
                 if (dir.x == -1 && dir.y == -1)
-                    Grid[x, y].direction = new Vector2(-0.71f, -0.71f);
+                    DirGrid[x, y].direction = new Vector2(-0.71f, -0.71f);
                 else if (dir.x == 1 && dir.y == 1)
-                    Grid[x, y].direction = new Vector2(0.71f, 0.71f);
+                    DirGrid[x, y].direction = new Vector2(0.71f, 0.71f);
                 else if (dir.x == -1 && dir.y == 1)
-                    Grid[x, y].direction = new Vector2(-0.71f, 0.71f);
+                    DirGrid[x, y].direction = new Vector2(-0.71f, 0.71f);
                 else if (dir.x == 1 && dir.y == -1)
-                    Grid[x, y].direction = new Vector2(0.71f, -0.71f);
+                    DirGrid[x, y].direction = new Vector2(0.71f, -0.71f);
+            }
+        }
+    }
+
+    private readonly Collider[] omBoxHitBuffer = new Collider[10];
+    private readonly Dictionary<Collider, Obstacles> colliderBuffer = new();
+
+    public void GenerateObstacleMap(int impassibleLayer)
+    {
+        for (int x = 0; x < ogWidth; x++)
+        {
+            for (int y = 0; y < ogHeight; y++)
+            {
+                int hitCount = Physics.OverlapBoxNonAlloc(ObstacleGrid[x, y].GetWorldPos(), Vector3.one * ocRadius, omBoxHitBuffer, Quaternion.identity, 1 << impassibleLayer);
+
+                for (int i = 0; i < hitCount; i++)
+                {
+                    var collider = omBoxHitBuffer[i];
+
+                    if (!colliderBuffer.ContainsKey(collider))
+                        colliderBuffer[collider] = collider.GetComponent<ObstacleCollider>().obstacle;
+
+                    var obstacleCollider = colliderBuffer[collider];
+
+                    if (!ObstacleGrid[x, y].obstacleList.Contains(obstacleCollider))
+                        ObstacleGrid[x, y].obstacleList.Add(obstacleCollider);
+                }
             }
         }
     }
