@@ -1,3 +1,4 @@
+using Unity.Mathematics;
 using UnityEngine;
 
 public static class UsefulUtils
@@ -33,10 +34,10 @@ public static class UsefulUtils
 
     public static bool HasCollideWithCircleObstacle(Circle circle, Vector3 unitWS, float unitRadius, out Vector2 negImpactDir)
     {
-        var center = V3ToV2(circle.transform.position);
-        var isCollided = Vector2.SqrMagnitude(center - V3ToV2(unitWS)) < Mathf.Pow(circle.radius + unitRadius, 2);
+        var center = circle.transform.position;
+        var isCollided = Vector2.SqrMagnitude(center - unitWS) < Mathf.Pow(circle.radius + unitRadius, 2);
         if (isCollided)
-            negImpactDir = (V3ToV2(unitWS) - center).normalized;
+            negImpactDir = (V3ToV2(unitWS) - V3ToV2(center)).normalized;
         else
             negImpactDir = Vector2.zero;
         return isCollided;
@@ -57,20 +58,20 @@ public static class UsefulUtils
     {
         var center = circle.transform.position;
         var unitWS = unitTrans.position;
-        var isInside = Vector3.SqrMagnitude(center - unitWS) < Mathf.Pow(circle.radius + unitRadius, 2);
-        if (isInside)
+        var isIntersected = Vector3.SqrMagnitude(center - unitWS) < Mathf.Pow(circle.radius + unitRadius, 2);
+        if (isIntersected)
         {
             var dir = (V3ToV2(unitWS) - V3ToV2(center)).normalized;
             unitTrans.SetPositionAndRotation(center + V2ToV3(dir) * (circle.radius + unitRadius), unitTrans.rotation);
         }
 
-        return isInside;
+        return isIntersected;
     }
 
     public static bool HasCollideWithRectObstacle(Rectangle rect, Vector3 unitWS, float unitRadius, out Vector2 negImpactDir)
     {
         var rectTrans = rect.transform;
-        var size = new Vector2(rect.baseSize.x * rectTrans.lossyScale.x, rect.baseSize.y * rectTrans.lossyScale.z);
+        var halfSize = new Vector2(rect.baseSize.x * rectTrans.lossyScale.x, rect.baseSize.y * rectTrans.lossyScale.z) / 2;
         var unitWS2D = V3ToV2(unitWS);
         var right = rectTrans.right;
         var up = rectTrans.forward;
@@ -80,13 +81,38 @@ public static class UsefulUtils
         var projY = Vector3.Dot(unitToCenter, up);
         var unitLS = new Vector2(projX, projY);
 
-        var isInside = unitLS.x < size.x / 2 && unitLS.x > -size.x / 2 && unitLS.y < size.y / 2 && unitLS.y > -size.y / 2;
+        var isInside = unitLS.x < halfSize.x && unitLS.x > -halfSize.x && unitLS.y < halfSize.y && unitLS.y > -halfSize.y;
 
         var closestPoint = Vector2.zero;
-        closestPoint.x = Mathf.Clamp(unitLS.x, -size.x / 2, size.x / 2);
-        closestPoint.y = Mathf.Clamp(unitLS.y, -size.y / 2, size.y / 2);
-        var closestPointWS = V3ToV2(rectTrans.position + right * closestPoint.x + up * closestPoint.y);
+        if (!isInside)
+        {
+            closestPoint.x = Mathf.Clamp(unitLS.x, -halfSize.x, halfSize.x);
+            closestPoint.y = Mathf.Clamp(unitLS.y, -halfSize.y, halfSize.y);
+        }
+        else
+        {
+            if (Mathf.Min(halfSize.x - unitLS.x, unitLS.x + halfSize.x) < Mathf.Min(halfSize.y - unitLS.y, unitLS.y + halfSize.y))
+            {
+                closestPoint.y = Mathf.Clamp(unitLS.y, -halfSize.y, halfSize.y);
+                closestPoint.x = unitLS.x > 0 ? halfSize.x : -halfSize.x;
+            }
+            else
+            {
+                closestPoint.x = Mathf.Clamp(unitLS.x, -halfSize.x, halfSize.x);
+                closestPoint.y = unitLS.y > 0 ? halfSize.y : -halfSize.y;
+            }
+        }
 
+        if (Mathf.Abs(unitLS.x - halfSize.x) < 1e-3f)
+            closestPoint.x += unitLS.x > halfSize.x ? -1e-3f : 1e-3f;
+        else if (Mathf.Abs(unitLS.x + halfSize.x) < 1e-3f)
+            closestPoint.x += unitLS.x > -halfSize.x ? -1e-3f : 1e-3f;
+        if (Mathf.Abs(unitLS.y - halfSize.y) < 1e-3f)
+            closestPoint.y += unitLS.y > halfSize.y ? -1e-3f : 1e-3f;
+        else if (Mathf.Abs(unitLS.y + halfSize.y) < 1e-3f)
+            closestPoint.y += unitLS.y > -halfSize.y ? -1e-3f : 1e-3f;
+
+        var closestPointWS = V3ToV2(rectTrans.position + right * closestPoint.x + up * closestPoint.y);
         var isCollided = Vector2.SqrMagnitude(closestPoint - unitLS) < Mathf.Pow(unitRadius, 2) || isInside;
         if (isCollided)
         {
@@ -117,7 +143,7 @@ public static class UsefulUtils
     public static bool IfIntersectWithRectObstacle(Rectangle rect, Transform unitTrans, float unitRadius)
     {
         var rectTrans = rect.transform;
-        var size = new Vector2(rect.baseSize.x * rectTrans.lossyScale.x, rect.baseSize.y * rectTrans.lossyScale.z);
+        var halfSize = new Vector2(rect.baseSize.x * rectTrans.lossyScale.x, rect.baseSize.y * rectTrans.lossyScale.z) / 2;
         var unitWS = unitTrans.position;
         var right = rectTrans.right;
         var up = rectTrans.forward;
@@ -127,13 +153,38 @@ public static class UsefulUtils
         var projY = Vector3.Dot(unitToCenter, up);
         var unitLS = new Vector2(projX, projY);
 
-        var isInside = unitLS.x < size.x / 2 && unitLS.x > -size.x / 2 && unitLS.y < size.y / 2 && unitLS.y > -size.y / 2;
+        var isInside = unitLS.x < halfSize.x && unitLS.x > -halfSize.x && unitLS.y < halfSize.y && unitLS.y > -halfSize.y;
 
         var closestPoint = Vector2.zero;
-        closestPoint.x = Mathf.Clamp(unitLS.x, -size.x / 2, size.x / 2);
-        closestPoint.y = Mathf.Clamp(unitLS.y, -size.y / 2, size.y / 2);
-        var closestPointWS = rectTrans.position + right * closestPoint.x + up * closestPoint.y;
+        if (!isInside)
+        {
+            closestPoint.x = Mathf.Clamp(unitLS.x, -halfSize.x, halfSize.x);
+            closestPoint.y = Mathf.Clamp(unitLS.y, -halfSize.y, halfSize.y);
+        }
+        else
+        {
+            if (Mathf.Min(halfSize.x - unitLS.x, unitLS.x + halfSize.x) < Mathf.Min(halfSize.y - unitLS.y, unitLS.y + halfSize.y))
+            {
+                closestPoint.y = Mathf.Clamp(unitLS.y, -halfSize.y, halfSize.y);
+                closestPoint.x = unitLS.x > 0 ? halfSize.x : -halfSize.x;
+            }
+            else
+            {
+                closestPoint.x = Mathf.Clamp(unitLS.x, -halfSize.x, halfSize.x);
+                closestPoint.y = unitLS.y > 0 ? halfSize.y : -halfSize.y;
+            }
+        }
 
+        if (Mathf.Abs(unitLS.x - halfSize.x) < 1e-3f)
+            closestPoint.x += unitLS.x > halfSize.x ? -1e-3f : 1e-3f;
+        else if (Mathf.Abs(unitLS.x + halfSize.x) < 1e-3f)
+            closestPoint.x += unitLS.x > -halfSize.x ? -1e-3f : 1e-3f;
+        if (Mathf.Abs(unitLS.y - halfSize.y) < 1e-3f)
+            closestPoint.y += unitLS.y > halfSize.y ? -1e-3f : 1e-3f;
+        else if (Mathf.Abs(unitLS.y + halfSize.y) < 1e-3f)
+            closestPoint.y += unitLS.y > -halfSize.y ? -1e-3f : 1e-3f;
+
+        var closestPointWS = rectTrans.position + right * closestPoint.x + up * closestPoint.y;
         var isIntersected = Vector2.SqrMagnitude(closestPoint - unitLS) < Mathf.Pow(unitRadius, 2) || isInside;
         if (isIntersected)
         {

@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 
 public class FlowField
@@ -233,57 +236,34 @@ public class FlowField
         }
     }
 
-    public void GenerateFlowField()
+    public void GenerateFlowFieldBurst()
     {
-        for (int x = 0; x < dgWidth; x++)
+        int size = dgWidth * dgHeight;
+
+        var heatMap = new NativeArray<float>(size, Allocator.TempJob);
+        var flowDir = new NativeArray<float2>(size, Allocator.TempJob);
+
+        for (int i = 0; i < dgWidth; i++)
         {
-            for (int y = 0; y < dgHeight; y++)
+            for (int j = 0; j < dgHeight; j++)
             {
-                DirGrid[x, y].direction = Vector2.zero;
+                heatMap[i * dgHeight + j] = DirGrid[i, j].heat;
             }
         }
 
-        for (int x = 0; x < dgWidth; x++)
+        var job = new FlowFieldJob(dgWidth, dgHeight, heatMap, flowDir);
+        job.Schedule(size, 64).Complete();
+
+        for (int i = 0; i < dgWidth; i++)
         {
-            for (int y = 0; y < dgHeight; y++)
+            for (int j = 0; j < dgHeight; j++)
             {
-                if (float.IsInfinity(DirGrid[x, y].cost))
-                {
-                    DirGrid[x, y].direction = -Vector2.one;
-                    continue;
-                }
-
-                var minHeat = DirGrid[x, y].heat;
-                var dir = Vector2Int.zero;
-                for (int i = -1; i <= 1; i++)
-                {
-                    for (int j = -1; j <= 1; j++)
-                    {
-                        if (i == 0 && j == 0) continue;
-                        var newGridPos = new Vector2Int(x + i, y + j);
-                        if (newGridPos.x < 0 || newGridPos.x >= dgWidth || newGridPos.y < 0 || newGridPos.y >= dgHeight) continue;
-
-                        var newHeat = DirGrid[newGridPos.x, newGridPos.y].heat;
-                        if (newHeat < minHeat)
-                        {
-                            minHeat = newHeat;
-                            dir.Set(i, j);
-                        }
-                    }
-                }
-                if (Mathf.Approximately(minHeat, DirGrid[x, y].heat)) continue;
-
-                DirGrid[x, y].direction = dir;
-                if (dir.x == -1 && dir.y == -1)
-                    DirGrid[x, y].direction = new Vector2(-0.71f, -0.71f);
-                else if (dir.x == 1 && dir.y == 1)
-                    DirGrid[x, y].direction = new Vector2(0.71f, 0.71f);
-                else if (dir.x == -1 && dir.y == 1)
-                    DirGrid[x, y].direction = new Vector2(-0.71f, 0.71f);
-                else if (dir.x == 1 && dir.y == -1)
-                    DirGrid[x, y].direction = new Vector2(0.71f, -0.71f);
+                DirGrid[i, j].direction = flowDir[i * dgHeight + j];
             }
         }
+
+        heatMap.Dispose();
+        flowDir.Dispose();
     }
 
     private readonly Collider[] omBoxHitBuffer = new Collider[10];

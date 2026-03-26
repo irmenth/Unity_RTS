@@ -40,13 +40,13 @@ public struct ObstacleCell : ICells
     public readonly Vector3 GetWorldPos() => worldPos;
     public readonly Vector2Int GetGridPos() => gridPos;
     public readonly List<Obstacles> obstacleList;
-    public readonly List<UnitPathFinder> unitList;
+    public readonly List<UnitAgent> unitList;
 
     public ObstacleCell(Vector3 worldPos, Vector2Int gridPos)
     {
         this.worldPos = worldPos;
         this.gridPos = gridPos;
         obstacleList = new List<Obstacles>();
-        unitList = new List<UnitPathFinder>();
+        unitList = new List<UnitAgent>();
     }
 }
