@@ -46,31 +46,31 @@ public class GridController : MonoBehaviour
         }
 
         // // Draw Cost Field
-        // for (int x = 0; x < gridSize.x; x++)
+        // for (int x = 0; x < directionGridSize.x; x++)
         // {
-        //     for (int y = 0; y < gridSize.y; y++)
+        //     for (int y = 0; y < directionGridSize.y; y++)
         //     {
-        //         var pos = CurFlowField.DirGrid[x, y].GetWorldPos() + cellRadius * Vector3.left;
+        //         var pos = CurFlowField.DirGrid[x, y].GetWorldPos() + directionCellRadius * Vector3.left;
         //         UnityEditor.Handles.Label(pos, CurFlowField.DirGrid[x, y].cost.ToString("F1"));
         //     }
         // }
 
         // // Draw Heat Map
-        // for (int x = 0; x < gridSize.x; x++)
+        // for (int x = 0; x < directionGridSize.x; x++)
         // {
-        //     for (int y = 0; y < gridSize.y; y++)
+        //     for (int y = 0; y < directionGridSize.y; y++)
         //     {
-        //         var pos = CurFlowField.DirGrid[x, y].GetWorldPos() + cellRadius * Vector3.left;
+        //         var pos = CurFlowField.DirGrid[x, y].GetWorldPos() + directionCellRadius * Vector3.left;
         //         UnityEditor.Handles.Label(pos, CurFlowField.DirGrid[x, y].heat.ToString("F1"));
         //     }
         // }
 
         // // Draw Obstacle Count
-        // for (int x = 0; x < gridSize.x; x++)
+        // for (int x = 0; x < obstacleGridSize.x; x++)
         // {
-        //     for (int y = 0; y < gridSize.y; y++)
+        //     for (int y = 0; y < obstacleGridSize.y; y++)
         //     {
-        //         var pos = CurFlowField.ObstacleGrid[x, y].GetWorldPos() + cellRadius * Vector3.left;
+        //         var pos = CurFlowField.ObstacleGrid[x, y].GetWorldPos() + obstacleCellRadius * Vector3.left;
         //         UnityEditor.Handles.Label(pos, CurFlowField.ObstacleGrid[x, y].obstacleList.Count.ToString());
         //     }
         // }
@@ -126,7 +126,7 @@ public class GridController : MonoBehaviour
             var mouseGridPos = CurFlowField.WorldToDirGridPos(hit.point);
             if (mouseGridPos == -Vector2Int.one) return;
 
-            CurFlowField.GenerateHeatMap(mouseGridPos);
+            CurFlowField.GenerateHeatMapBurst(mouseGridPos);
             CurFlowField.GenerateFlowFieldBurst();
 
             EventBus.Publish(new MoveToEvent(hit.point));

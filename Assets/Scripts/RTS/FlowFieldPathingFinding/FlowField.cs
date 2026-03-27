@@ -134,13 +134,13 @@ public class FlowField
                     if (!hasRecordImpassible && cfBoxHitBuffter[i].gameObject.layer == impassibleLayer)
                     {
                         var subCellHitCount = 0;
-                        for (int m = -1; m <= 1; m++)
+                        for (int dx = -1; dx <= 1; dx++)
                         {
-                            for (int n = -1; n <= 1; n++)
+                            for (int dy = -1; dy <= 1; dy++)
                             {
                                 if (subCellHitCount >= 4) break;
 
-                                var curSubCellPos = DirGrid[x, y].GetWorldPos() + new Vector3(m * subCellDiameter, -10, n * subCellDiameter);
+                                var curSubCellPos = DirGrid[x, y].GetWorldPos() + new Vector3(dx * subCellDiameter, -10, dy * subCellDiameter);
                                 if (Physics.Raycast(curSubCellPos, Vector3.up, out var hit, 100f, 1 << impassibleLayer))
                                     subCellHitCount++;
                             }
@@ -155,13 +155,13 @@ public class FlowField
                     else if (!hasRecordRough && cfBoxHitBuffter[i].gameObject.layer == roughLayer)
                     {
                         var subCellHitCount = 0;
-                        for (int m = -1; m <= 1; m++)
+                        for (int dx = -1; dx <= 1; dx++)
                         {
-                            for (int n = -1; n <= 1; n++)
+                            for (int dy = -1; dy <= 1; dy++)
                             {
                                 if (subCellHitCount >= 4) break;
 
-                                var curSubCellPos = DirGrid[x, y].GetWorldPos() + new Vector3(m * subCellDiameter, -10, n * subCellDiameter);
+                                var curSubCellPos = DirGrid[x, y].GetWorldPos() + new Vector3(dx * subCellDiameter, -10, dy * subCellDiameter);
                                 if (Physics.Raycast(curSubCellPos, Vector3.up, out var hit, 100f, 1 << roughLayer))
                                     subCellHitCount++;
                             }
@@ -178,62 +178,40 @@ public class FlowField
         }
     }
 
-    private readonly Queue<int> openList = new();
-
-    public void GenerateHeatMap(Vector2Int destinationGridPos)
+    public void GenerateHeatMapBurst(Vector2Int destinationGridPos)
     {
-        openList.Clear();
-        var closedList = new bool[dgWidth * dgHeight];
+        int size = dgWidth * dgHeight, destination = destinationGridPos.x * dgHeight + destinationGridPos.y;
 
-        if (float.IsInfinity(DirGrid[destinationGridPos.x, destinationGridPos.y].cost)) return;
+        var costMap = new NativeArray<float>(size, Allocator.TempJob);
+        var heatMap = new NativeArray<float>(size, Allocator.TempJob);
+        var openList = new NativeQueue<int>(Allocator.TempJob);
+        var inOpenList = new NativeArray<byte>(size, Allocator.TempJob);
+        var closeList = new NativeArray<byte>(size, Allocator.TempJob);
 
-        for (int x = 0; x < dgWidth; x++)
+        for (int i = 0; i < dgWidth; i++)
         {
-            for (int y = 0; y < dgHeight; y++)
+            for (int j = 0; j < dgHeight; j++)
             {
-                DirGrid[x, y].heat = float.PositiveInfinity;
+                costMap[i * dgHeight + j] = DirGrid[i, j].cost;
             }
         }
-        DirGrid[destinationGridPos.x, destinationGridPos.y].heat = 0;
-        openList.Enqueue(destinationGridPos.x * dgHeight + destinationGridPos.y);
 
-        while (openList.Count > 0)
+        var job = new HeatMapJob(dgWidth, dgHeight, destination, openList, inOpenList, closeList, costMap, heatMap);
+        job.Schedule().Complete();
+
+        for (int i = 0; i < dgWidth; i++)
         {
-            var curIndex = openList.Dequeue();
-            var curGridPos = new Vector2Int(curIndex / dgHeight, curIndex % dgHeight);
-            closedList[curIndex] = true;
-
-            for (int i = -1; i <= 1; i++)
+            for (int j = 0; j < dgHeight; j++)
             {
-                for (int j = -1; j <= 1; j++)
-                {
-                    if (i == 0 && j == 0) continue;
-                    Vector2Int newGridPos = new(DirGrid[curGridPos.x, curGridPos.y].GetGridPos().x + i, DirGrid[curGridPos.x, curGridPos.y].GetGridPos().y + j);
-                    var newIndex = newGridPos.x * dgHeight + newGridPos.y;
-                    if (newGridPos.x < 0 || newGridPos.x >= dgWidth || newGridPos.y < 0 || newGridPos.y >= dgHeight) continue;
-                    if (closedList[newGridPos.x * dgHeight + newGridPos.y]) continue;
-
-                    if (float.IsInfinity(DirGrid[newGridPos.x, newGridPos.y].cost))
-                    {
-                        closedList[newIndex] = true;
-                        continue;
-                    }
-
-                    var moveCost = DirGrid[newGridPos.x, newGridPos.y].cost;
-                    if (i * j != 0)
-                        moveCost *= 1.4f;
-
-                    var newCost = DirGrid[curGridPos.x, curGridPos.y].heat + moveCost;
-                    if (newCost < DirGrid[newGridPos.x, newGridPos.y].heat)
-                    {
-                        DirGrid[newGridPos.x, newGridPos.y].heat = newCost;
-                        if (!openList.Contains(newIndex))
-                            openList.Enqueue(newIndex);
-                    }
-
-                }
+                DirGrid[i, j].heat = heatMap[i * dgHeight + j];
             }
         }
+
+        costMap.Dispose();
+        heatMap.Dispose();
+        openList.Dispose();
+        inOpenList.Dispose();
+        closeList.Dispose();
     }
 
     public void GenerateFlowFieldBurst()

@@ -32,20 +32,20 @@ public struct FlowFieldJob : IJobParallelFor
 
         float minHeat = heatMap[index];
         float2 baseDir = float2.zero;
-        for (int i = -1; i <= 1; i++)
+        for (int dx = -1; dx <= 1; dx++)
         {
-            for (int j = -1; j <= 1; j++)
+            for (int dy = -1; dy <= 1; dy++)
             {
-                if (i == 0 && j == 0) continue;
+                if (dx == 0 && dy == 0) continue;
 
-                int nx = x + i, ny = y + j;
+                int nx = x + dx, ny = y + dy;
                 if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
 
                 float newHeat = heatMap[nx * height + ny];
                 if (newHeat < minHeat)
                 {
                     minHeat = newHeat;
-                    baseDir = new float2(i, j);
+                    baseDir = new float2(dx, dy);
                 }
             }
         }

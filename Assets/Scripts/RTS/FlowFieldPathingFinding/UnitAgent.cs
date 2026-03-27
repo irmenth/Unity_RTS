@@ -5,6 +5,7 @@ public class UnitAgent : MonoBehaviour
     [SerializeField] private GridController gridCC;
     [SerializeField] private float unitRadius;
     [SerializeField] private float moveSpeed;
+    [SerializeField][Range(1, 10)] private float unitSpaceMultiplier;
     [SerializeField] private float repulsionForceMag;
 
     private Vector3 selfPos;
@@ -28,6 +29,7 @@ public class UnitAgent : MonoBehaviour
     }
 
     private Vector2 acceleration;
+    private bool arrived;
 
     private void FlowFieldAccelerate()
     {
@@ -42,13 +44,14 @@ public class UnitAgent : MonoBehaviour
         if (Vector2.SqrMagnitude(UsefulUtils.V3ToV2(selfPos) - destination) <= Mathf.Pow(unitRadius, 2))
         {
             arrived = true;
-            acceleration = 8f * velocity.magnitude * -velocity.normalized;
-            return;
+            acceleration = 8f * curMaxSpeed * -velocity.normalized;
         }
-
-        var dir = dg[unitDgPos.x, unitDgPos.y].direction;
-        if (dir != -Vector2.one)
-            acceleration = 8f * moveSpeed * dir;
+        else
+        {
+            var dir = dg[unitDgPos.x, unitDgPos.y].direction;
+            if (dir != -Vector2.one)
+                acceleration = 8f * curMaxSpeed * dir;
+        }
     }
 
     private void SteeringAccelerationCorrection()
@@ -61,14 +64,27 @@ public class UnitAgent : MonoBehaviour
             return;
         }
 
-        foreach (var otherUnit in og[predictOgPos.x, predictOgPos.y].unitList)
+        var selfPos2D = UsefulUtils.V3ToV2(selfPos);
+        for (int dx = -1; dx <= 1; dx++)
         {
-            if (otherUnit.transform == transform) continue;
-
-            var otherPos = otherUnit.transform.position;
-            if (Vector3.SqrMagnitude(otherPos - selfPos) <= Mathf.Pow(unitRadius + otherUnit.unitRadius, 2))
+            for (int dy = -1; dy <= 1; dy++)
             {
-                acceleration += repulsionForceMag * curMaxSpeed * UsefulUtils.V3ToV2(selfPos - otherPos).normalized;
+                var newPos2D = new Vector2Int(predictOgPos.x + dx, predictOgPos.y + dy);
+                if (newPos2D.x < 0 || newPos2D.x >= flowField.ogWidth || newPos2D.y < 0 || newPos2D.y >= flowField.ogHeight) continue;
+
+                foreach (var otherUnit in og[newPos2D.x, newPos2D.y].unitList)
+                {
+                    if (otherUnit.transform == transform) continue;
+
+                    var otherPos = otherUnit.transform.position;
+                    var otherPos2D = UsefulUtils.V3ToV2(otherPos);
+                    if (Vector2.SqrMagnitude(otherPos2D - selfPos2D) <= Mathf.Pow((unitRadius + otherUnit.unitRadius) * unitSpaceMultiplier, 2))
+                    {
+                        var magMulitipier = -(Vector2.Distance(selfPos2D, otherPos2D) - unitRadius - otherUnit.unitRadius) / (unitRadius + otherUnit.unitRadius) / unitSpaceMultiplier + 1;
+                        var mag = repulsionForceMag * curMaxSpeed * magMulitipier;
+                        acceleration += mag * (selfPos2D - otherPos2D).normalized;
+                    }
+                }
             }
         }
     }
@@ -95,8 +111,6 @@ public class UnitAgent : MonoBehaviour
 
         velocity = Vector2.ClampMagnitude(velocity, curMaxSpeed);
     }
-
-    private bool arrived;
 
     private void KenimaticVelocityCorrection()
     {
@@ -134,10 +148,8 @@ public class UnitAgent : MonoBehaviour
         }
 
         var obstacleList = og[unitOgPos.x, unitOgPos.y].obstacleList;
-        for (int i = 0; i < obstacleList.Count; i++)
+        foreach (var obstacle in obstacleList)
         {
-            var obstacle = obstacleList[i];
-
             switch (obstacle.type)
             {
                 case ObstacleType.Circle:
