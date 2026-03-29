@@ -5,8 +5,6 @@ public class UnitAgent : MonoBehaviour
     [SerializeField] private GridController gridCC;
     [SerializeField] private float unitRadius;
     [SerializeField] private float moveSpeed;
-    [SerializeField][Range(1, 10)] private float unitSpaceMultiplier;
-    [SerializeField] private float repulsionForceMag;
 
     private Vector3 selfPos;
     private FlowField flowField;
@@ -78,11 +76,11 @@ public class UnitAgent : MonoBehaviour
 
                     var otherPos = otherUnit.transform.position;
                     var otherPos2D = UsefulUtils.V3ToV2(otherPos);
-                    if (Vector2.SqrMagnitude(otherPos2D - selfPos2D) <= Mathf.Pow((unitRadius + otherUnit.unitRadius) * unitSpaceMultiplier, 2))
+                    if (Vector2.SqrMagnitude(otherPos2D - selfPos2D) <= Mathf.Pow(unitRadius + otherUnit.unitRadius, 2))
                     {
-                        var magMulitipier = -(Vector2.Distance(selfPos2D, otherPos2D) - unitRadius - otherUnit.unitRadius) / (unitRadius + otherUnit.unitRadius) / unitSpaceMultiplier + 1;
-                        var mag = repulsionForceMag * curMaxSpeed * magMulitipier;
-                        acceleration += mag * (selfPos2D - otherPos2D).normalized;
+                        var dir = (selfPos2D - otherPos2D).normalized;
+                        var mag = curMaxSpeed / Time.deltaTime;
+                        acceleration += mag * dir;
                     }
                 }
             }
