@@ -67,10 +67,10 @@ public static class UsefulUtils
     /// <param name="unitTrans"></param>
     /// <param name="unitRadius"></param>
     /// <returns></returns>
-    public static bool IfIntersectWithCircleObstacle(Circle circle, Transform unitTrans, float unitRadius)
+    public static Vector3 IfIntersectWithCircleObstacle(Circle circle, Vector3 unitWS, float unitRadius)
     {
+        var position = unitWS;
         var center = circle.transform.position;
-        var unitWS = unitTrans.position;
         var center2D = V3ToV2(center);
         var unitWS2D = V3ToV2(unitWS);
         var isIntersected = Vector2.SqrMagnitude(center2D - unitWS2D) < Mathf.Pow(circle.radius + unitRadius, 2);
@@ -82,10 +82,10 @@ public static class UsefulUtils
             if (isInside)
                 dir = -dir;
 
-            unitTrans.SetPositionAndRotation(center + V2ToV3(dir) * (circle.radius + unitRadius), unitTrans.rotation);
+            position = center + V2ToV3(dir) * (circle.radius + unitRadius);
         }
 
-        return isIntersected;
+        return position;
     }
 
     public static bool HasCollideWithRectObstacle(Rectangle rect, Vector3 unitWS, float unitRadius, out Vector2 negImpactDir)
@@ -162,12 +162,13 @@ public static class UsefulUtils
     /// <param name="unitTrans"></param>
     /// <param name="unitRadius"></param>
     /// <returns></returns>
-    public static bool IfIntersectWithRectObstacle(Rectangle rect, Transform unitTrans, float unitRadius)
+    public static Vector3 IfIntersectWithRectObstacle(Rectangle rect, Vector3 unitWS, float unitRadius)
     {
+        var position = unitWS;
         var rectTrans = rect.transform;
         var center2D = V3ToV2(rectTrans.position);
         var halfSize = new Vector2(rect.baseSize.x * rectTrans.lossyScale.x, rect.baseSize.y * rectTrans.lossyScale.z) / 2;
-        var unitWS2D = V3ToV2(unitTrans.position);
+        var unitWS2D = V3ToV2(unitWS);
         var right = rectTrans.right;
         var up = rectTrans.forward;
 
@@ -214,11 +215,11 @@ public static class UsefulUtils
         {
             var dir = V2ToV3((unitWS2D - closestPointWS).normalized);
             if (isInside)
-                unitTrans.SetPositionAndRotation(closestPointWS3D - dir * unitRadius, unitTrans.rotation);
+                position = closestPointWS3D - dir * unitRadius;
             else
-                unitTrans.SetPositionAndRotation(closestPointWS3D + dir * unitRadius, unitTrans.rotation);
+                position = closestPointWS3D + dir * unitRadius;
         }
 
-        return isIntersected;
+        return position;
     }
 }
