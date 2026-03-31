@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class UnitAgent : MonoBehaviour
 {
-    [SerializeField] private GridController gridCC;
-    [SerializeField] private float unitRadius;
+    public GridController gridCC;
+    public float unitRadius;
     [SerializeField] private float moveSpeed;
 
     private Vector3 position;
@@ -13,6 +13,7 @@ public class UnitAgent : MonoBehaviour
     private Vector2Int unitDgPos;
     private Vector2Int unitOgPos;
     private float curMaxSpeed;
+    private Vector2 acceleration;
 
     private void InitVariables()
     {
@@ -24,27 +25,12 @@ public class UnitAgent : MonoBehaviour
         unitOgPos = flowField.WorldToObstacleGridPos(position);
         var cost = dg[unitDgPos.x, unitDgPos.y].cost;
         curMaxSpeed = float.IsInfinity(cost) ? moveSpeed : moveSpeed / cost;
+        acceleration = Vector2.zero;
     }
-
-    private Vector2 acceleration;
-    private bool arrived;
 
     private void FlowFieldAccelerate()
     {
-        acceleration = Vector2.zero;
-
-        if (unitDgPos == new Vector2Int(-1, -1))
-        {
-            velocity = Vector2.zero;
-            return;
-        }
-
-        if (Vector2.SqrMagnitude(UsefulUtils.V3ToV2(position) - destination) <= Mathf.Pow(unitRadius, 2))
-        {
-            arrived = true;
-            acceleration = 8f * curMaxSpeed * -velocity.normalized;
-        }
-        else
+        if (Vector2.SqrMagnitude(UsefulUtils.V3ToV2(position) - destination) > Mathf.Pow(unitRadius, 2))
         {
             var dir = dg[unitDgPos.x, unitDgPos.y].direction;
             if (dir != -Vector2.one)
@@ -52,52 +38,11 @@ public class UnitAgent : MonoBehaviour
         }
     }
 
-    // private void SteeringAccelerationCorrection()
-    // {
-    //     var predictPos = Time.deltaTime * velocity + UsefulUtils.V3ToV2(selfPos);
-    //     var predictOgPos = flowField.WorldToObstacleGridPos(predictPos);
-    //     if (predictOgPos == new Vector2Int(-1, -1))
-    //     {
-    //         velocity = Vector2.zero;
-    //         return;
-    //     }
-
-    //     var selfPos2D = UsefulUtils.V3ToV2(selfPos);
-    //     for (int dx = -1; dx <= 1; dx++)
-    //     {
-    //         for (int dy = -1; dy <= 1; dy++)
-    //         {
-    //             var newPos2D = new Vector2Int(predictOgPos.x + dx, predictOgPos.y + dy);
-    //             if (newPos2D.x < 0 || newPos2D.x >= flowField.ogWidth || newPos2D.y < 0 || newPos2D.y >= flowField.ogHeight) continue;
-
-    //             foreach (var otherUnit in og[newPos2D.x, newPos2D.y].unitList)
-    //             {
-    //                 if (otherUnit.transform == transform) continue;
-
-    //                 var otherPos = otherUnit.transform.position;
-    //                 var otherPos2D = UsefulUtils.V3ToV2(otherPos);
-    //                 if (Vector2.SqrMagnitude(otherPos2D - selfPos2D) <= Mathf.Pow(unitRadius + otherUnit.unitRadius, 2))
-    //                 {
-    //                     var dir = (selfPos2D - otherPos2D).normalized;
-    //                     var mag = curMaxSpeed / Time.deltaTime;
-    //                     acceleration += mag * dir;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
     private Vector2 velocity;
 
-    private void ApplyVelocity()
+    private void ApplyAcceleration()
     {
-        if (unitDgPos == new Vector2Int(-1, -1))
-        {
-            velocity = Vector2.zero;
-            return;
-        }
-
-        if (arrived && velocity.sqrMagnitude <= 1e-4f)
+        if (velocity.sqrMagnitude <= 1e-4f)
         {
             Stopped = true;
             velocity = Vector2.zero;
@@ -108,6 +53,37 @@ public class UnitAgent : MonoBehaviour
         }
 
         velocity = Vector2.ClampMagnitude(velocity, curMaxSpeed);
+    }
+
+    private void BoidsVelocityCorrection()
+    {
+        var offsetSum = Vector2.zero;
+        var count = 0;
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                var newPos = new Vector2Int(unitOgPos.x + dx, unitOgPos.y + dy);
+                if (newPos.x < 0 || newPos.x >= flowField.ogWidth || newPos.y < 0 || newPos.y >= flowField.ogHeight) continue;
+
+                foreach (var other in og[newPos.x, newPos.y].unitList)
+                {
+                    if (other == this) continue;
+
+                    var diff = UsefulUtils.V3ToV2(other.position - position);
+                    if (diff.sqrMagnitude <= Mathf.Pow(unitRadius + other.unitRadius, 2))
+                    {
+                        offsetSum += 1 / diff.magnitude * diff.normalized;
+                        count++;
+                    }
+                }
+            }
+        }
+
+        if (count > 0)
+        {
+            velocity -= offsetSum / count;
+        }
     }
 
     private void KenimaticVelocityCorrection()
@@ -137,47 +113,8 @@ public class UnitAgent : MonoBehaviour
         }
     }
 
-    private void UnitCrowdPositionCorrection()
-    {
-        if (unitOgPos == new Vector2Int(-1, -1))
-        {
-            velocity = Vector2.zero;
-            return;
-        }
-
-        var selfPos2D = UsefulUtils.V3ToV2(transform.position);
-        for (int dx = -1; dx <= 1; dx++)
-        {
-            for (int dy = -1; dy <= 1; dy++)
-            {
-                var newPos2D = new Vector2Int(unitOgPos.x + dx, unitOgPos.y + dy);
-                if (newPos2D.x < 0 || newPos2D.x >= flowField.ogWidth || newPos2D.y < 0 || newPos2D.y >= flowField.ogHeight) continue;
-
-                foreach (var otherUnit in og[newPos2D.x, newPos2D.y].unitList)
-                {
-                    if (otherUnit.transform == transform) continue;
-
-                    var otherPos = otherUnit.transform.position;
-                    var otherPos2D = UsefulUtils.V3ToV2(otherPos);
-                    if (Vector2.SqrMagnitude(otherPos2D - selfPos2D) < Mathf.Pow(unitRadius + otherUnit.unitRadius, 2))
-                    {
-                        var dir = (selfPos2D - otherPos2D).normalized;
-                        var mag = unitRadius + otherUnit.unitRadius - Vector2.Distance(selfPos2D, otherPos2D);
-                        position += UsefulUtils.V2ToV3(mag * dir);
-                    }
-                }
-            }
-        }
-    }
-
     private void KenimaticPositionCorrection()
     {
-        if (unitOgPos == new Vector2Int(-1, -1))
-        {
-            velocity = Vector2.zero;
-            return;
-        }
-
         foreach (var obstacle in og[unitOgPos.x, unitOgPos.y].obstacleList)
         {
             switch (obstacle.type)
@@ -199,8 +136,6 @@ public class UnitAgent : MonoBehaviour
         flowField = gridCC.CurFlowField;
         og = flowField.ObstacleGrid;
 
-        if (unitOgPos == new Vector2Int(-1, -1)) return;
-
         if (unitOgPos != lastGridPos)
             og[unitOgPos.x, unitOgPos.y].unitList.Remove(this);
 
@@ -216,7 +151,6 @@ public class UnitAgent : MonoBehaviour
     private void MarkIsMovingTo(MoveToEvent evt)
     {
         Stopped = false;
-        arrived = false;
         destination = UsefulUtils.V3ToV2(evt.destination);
     }
 
@@ -225,23 +159,27 @@ public class UnitAgent : MonoBehaviour
         EventBus.Subscribe<MoveToEvent>(MarkIsMovingTo);
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         InitVariables();
+        if (unitDgPos == new Vector2Int(-1, -1) || unitOgPos == new Vector2Int(-1, -1))
+        {
+            Debug.LogError($"[UnitAgent] unit is out of grid: {gameObject.name}");
+            velocity = Vector2.zero;
+            return;
+        }
 
+        velocity *= 0.95f;
         if (!Stopped)
         {
             FlowFieldAccelerate();
-            ApplyVelocity();
-
-            KenimaticVelocityCorrection();
-
-            position += UsefulUtils.V2ToV3(velocity) * Time.deltaTime;
+            ApplyAcceleration();
         }
+        BoidsVelocityCorrection();
+        KenimaticVelocityCorrection();
 
-        UnitCrowdPositionCorrection();
+        position += UsefulUtils.V2ToV3(velocity) * Time.deltaTime;
         KenimaticPositionCorrection();
-
         transform.SetPositionAndRotation(position, transform.rotation);
 
         UpdateUnitCurrentCell();

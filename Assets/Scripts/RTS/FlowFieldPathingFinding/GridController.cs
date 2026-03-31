@@ -6,6 +6,7 @@ using Debug = UnityEngine.Debug;
 public class GridController : MonoBehaviour
 {
     [Header("In Game")]
+    [SerializeField] private GameObject unitPrefab;
     [SerializeField] private Vector2Int directionGridSize;
     [SerializeField] private float directionCellRadius = 0.2f;
     [SerializeField] private Vector2Int obstacleGridSize;
@@ -35,13 +36,23 @@ public class GridController : MonoBehaviour
 #if UNITY_EDITOR
         if (CurFlowField == null) return;
 
-        // Draw direction grid
+        // // Draw direction grid
+        // Gizmos.color = Color.yellow;
+        // for (int x = 0; x < directionGridSize.x; x++)
+        // {
+        //     for (int y = 0; y < directionGridSize.y; y++)
+        //     {
+        //         Gizmos.DrawWireCube(CurFlowField.DirGrid[x, y].GetWorldPos(), directionCellRadius * 2f * Vector3.one);
+        //     }
+        // }
+
+        // // Draw obstacle grid
         Gizmos.color = Color.yellow;
-        for (int x = 0; x < directionGridSize.x; x++)
+        for (int x = 0; x < obstacleGridSize.x; x++)
         {
-            for (int y = 0; y < directionGridSize.y; y++)
+            for (int y = 0; y < obstacleGridSize.y; y++)
             {
-                Gizmos.DrawWireCube(CurFlowField.DirGrid[x, y].GetWorldPos(), directionCellRadius * 2f * Vector3.one);
+                Gizmos.DrawWireCube(CurFlowField.ObstacleGrid[x, y].GetWorldPos(), obstacleCellRadius * 2f * Vector3.one);
             }
         }
 
@@ -65,15 +76,15 @@ public class GridController : MonoBehaviour
         //     }
         // }
 
-        // // Draw Obstacle Count
-        // for (int x = 0; x < obstacleGridSize.x; x++)
-        // {
-        //     for (int y = 0; y < obstacleGridSize.y; y++)
-        //     {
-        //         var pos = CurFlowField.ObstacleGrid[x, y].GetWorldPos() + obstacleCellRadius * Vector3.left;
-        //         UnityEditor.Handles.Label(pos, CurFlowField.ObstacleGrid[x, y].obstacleList.Count.ToString());
-        //     }
-        // }
+        // Draw Obstacle Count
+        for (int x = 0; x < obstacleGridSize.x; x++)
+        {
+            for (int y = 0; y < obstacleGridSize.y; y++)
+            {
+                var pos = CurFlowField.ObstacleGrid[x, y].GetWorldPos() + obstacleCellRadius * Vector3.left;
+                UnityEditor.Handles.Label(pos, CurFlowField.ObstacleGrid[x, y].obstacleList.Count.ToString());
+            }
+        }
 
         // // Draw Flow Field
         // for (int x = 0; x < directionGridSize.x; x++)
@@ -138,6 +149,17 @@ public class GridController : MonoBehaviour
 #endif
     }
 
+    private void GenerateUnit(InputAction.CallbackContext ctx)
+    {
+        var mousePos = Pointer.current.position.ReadValue();
+        var ray = Camera.main.ScreenPointToRay(mousePos);
+        if (Physics.Raycast(ray, out var hit, 1000f, groundLayerMask))
+        {
+            var unit = Instantiate(unitPrefab, hit.point, Quaternion.identity);
+            unit.GetComponent<UnitAgent>().gridCC = this;
+        }
+    }
+
 #if UNITY_EDITOR
     // private MeshRenderer[,] dirIndicatorMeshRenderers;
 #endif
@@ -170,10 +192,12 @@ public class GridController : MonoBehaviour
 #endif
 
         InputActionsManager.RTSSetDestination.started += SetDestination;
+        InputActionsManager.RTSGenerateUnit.started += GenerateUnit;
     }
 
     private void OnDestroy()
     {
         InputActionsManager.RTSSetDestination.started -= SetDestination;
+        InputActionsManager.RTSGenerateUnit.started -= GenerateUnit;
     }
 }

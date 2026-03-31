@@ -79,9 +79,6 @@ public static class UsefulUtils
         if (isIntersected)
         {
             var dir = (unitWS2D - center2D).normalized;
-            if (isInside)
-                dir = -dir;
-
             position = center + V2ToV3(dir) * (circle.radius + unitRadius);
         }
 
