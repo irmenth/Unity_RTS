@@ -1,20 +1,9 @@
-using System.Collections.Generic;
-using Unity.Collections;
 using Unity.Mathematics;
-using UnityEngine;
 
-public interface ICells
+public struct DirectionCell
 {
-    public Vector3 GetWorldPos();
-    public Vector2Int GetGridPos();
-}
-
-public struct DirCell : ICells
-{
-    private Vector3 worldPos;
-    private Vector2Int gridPos;
-    public readonly Vector3 GetWorldPos() => worldPos;
-    public readonly Vector2Int GetGridPos() => gridPos;
+    public int index;
+    public float2 worldPos;
     public float cost;
     /// <summary>
     /// Positive Infinity means impassible
@@ -25,30 +14,24 @@ public struct DirCell : ICells
     /// </summary>
     public float2 direction;
 
-    public DirCell(Vector3 worldPos, Vector2Int gridPos)
+    public DirectionCell(int index, float2 worldPos)
     {
+        this.index = index;
         this.worldPos = worldPos;
-        this.gridPos = gridPos;
         cost = 1;
         heat = float.PositiveInfinity;
         direction = float2.zero;
     }
 }
 
-public struct ObstacleCell : ICells
+public struct ObstacleCell
 {
-    private Vector3 worldPos;
-    private Vector2Int gridPos;
-    public readonly Vector3 GetWorldPos() => worldPos;
-    public readonly Vector2Int GetGridPos() => gridPos;
-    public readonly List<Obstacles> obstacleList;
-    public readonly List<UnitAgentData> unitList;
+    public int index;
+    public float2 worldPos;
 
-    public ObstacleCell(Vector3 worldPos, Vector2Int gridPos)
+    public ObstacleCell(int index, float2 worldPos)
     {
         this.worldPos = worldPos;
-        this.gridPos = gridPos;
-        obstacleList = new List<Obstacles>();
-        unitList = new List<UnitAgentData>();
+        this.index = index;
     }
 }

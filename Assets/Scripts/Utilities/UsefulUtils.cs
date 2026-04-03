@@ -21,13 +21,13 @@ public static class UsefulUtils
 
     public static Vector2 V3ToV2(Vector3 v3) => new(v3.x, v3.z);
 
-    public static bool Approximately(Vector2 a, Vector2 b) => Vector2.SqrMagnitude(a - b) < 1e-12f;
+    public static bool Approximately(Vector2 a, Vector2 b, float eps = 1e-6f) => Vector2.SqrMagnitude(a - b) < Mathf.Pow(eps, 2f);
 
-    public static bool Approximately(Vector3 a, Vector3 b) => Vector3.SqrMagnitude(a - b) < 1e-12f;
+    public static bool Approximately(Vector3 a, Vector3 b, float eps = 1e-6f) => Vector3.SqrMagnitude(a - b) < Mathf.Pow(eps, 2f);
 
-    public static bool Approximately(float2 a, float2 b) => math.lengthsq(a - b) < 1e-12f;
+    public static bool Approximately(float2 a, float2 b, float eps = 1e-6f) => math.lengthsq(a - b) < math.pow(eps, 2f);
 
-    public static bool Approximately(float3 a, float3 b) => math.lengthsq(a - b) < 1e-12f;
+    public static bool Approximately(float3 a, float3 b, float eps = 1e-6f) => math.lengthsq(a - b) < math.pow(eps, 2f);
 
     public static float2 ClampMagnitude(float2 v, float maxLength)
     {
@@ -64,7 +64,7 @@ public static class UsefulUtils
         if (isIntersected)
         {
             float2 dir = math.normalize(unitWS - center);
-            position = center + (circle.radius + unitRadius) * dir;
+            position = center + (circle.radius + 1e-6f + unitRadius) * dir;
         }
 
         return position;
@@ -119,7 +119,7 @@ public static class UsefulUtils
                 closestPoint.y += math.select(1e-6f, -1e-6f, unitLS.y > closestPoint.y);
 
             float2 dirLS = unitLS - closestPoint;
-            float2 dirWS = math.normalize(center + dirLS.x * right + dirLS.y * up);
+            float2 dirWS = math.normalize(dirLS.x * right + dirLS.y * up);
             negImpactDir = math.select(dirWS, -dirWS, isInside);
         }
 
@@ -182,8 +182,8 @@ public static class UsefulUtils
 
             float2 closestPointWS = center + closestPoint.x * right + closestPoint.y * up;
             float2 dirLS = unitLS - closestPoint;
-            float2 dirWS = math.normalize(center + dirLS.x * right + dirLS.y * up);
-            position = math.select(closestPointWS + unitRadius * dirWS, closestPointWS - unitRadius * dirWS, isInside);
+            float2 dirWS = math.normalize(dirLS.x * right + dirLS.y * up);
+            position = math.select(closestPointWS + (unitRadius + 1e-6f) * dirWS, closestPointWS - (unitRadius + 1e-6f) * dirWS, isInside);
         }
 
         return position;

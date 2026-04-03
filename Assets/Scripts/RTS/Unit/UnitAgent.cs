@@ -1,55 +1,43 @@
 using Unity.Mathematics;
 using UnityEngine;
 
-public struct UnitAgentData
-{
-    public int unitID;
-    public readonly float unitRadius;
-    public readonly float moveSpeed;
-    public float2 position;
-    public float2 velocity;
-    public int2 unitDgPos;
-    public int2 unitOgPos;
-
-    public UnitAgentData(float unitRadius, float moveSpeed, float2 position)
-    {
-        unitID = -1;
-        this.unitRadius = unitRadius;
-        this.moveSpeed = moveSpeed;
-        this.position = position;
-        velocity = new float2(0, 0);
-        unitDgPos = new int2(-1, -1);
-        unitOgPos = new int2(-1, -1);
-    }
-    public static bool operator ==(UnitAgentData a, UnitAgentData b) => a.unitID == b.unitID;
-    public static bool operator !=(UnitAgentData a, UnitAgentData b) => a.unitID != b.unitID;
-    public override readonly bool Equals(object obj) => obj is UnitAgentData other && this == other;
-    public override readonly int GetHashCode() => unitID.GetHashCode();
-}
-
 public class UnitAgent : MonoBehaviour
 {
     [SerializeField] private float moveSpeed;
     [SerializeField] private float unitRadius;
 
-    private UnitAgentData unitData;
+    public int id;
+
+    private void ChangeID(UnitRemoveEvent evt)
+    {
+        if (id != evt.oldID) return;
+        id = evt.newID;
+    }
 
     private void Awake()
     {
         float2 pos = new(transform.position.x, transform.position.z);
-        unitData = new UnitAgentData(unitRadius, moveSpeed, pos);
-        unitData.unitID = UnitRegister.Register(unitData);
+        UnitAgentData data = new(unitRadius, moveSpeed, pos);
+        id = UnitRegister.instance.Register(data);
+    }
+
+    private void OnEnable()
+    {
+        EventBus.Subscribe<UnitRemoveEvent>(ChangeID);
     }
 
     private void Update()
     {
-        var pos = UnitRegister.unitRegistry[unitData.unitID].position;
+        var pos = UnitRegister.instance.unitRegistry[id].position;
         transform.position = new Vector3(pos.x, 0, pos.y);
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
-        UnitRegister.Unregister(unitData.unitID);
+        EventBus.Unsubscribe<UnitRemoveEvent>(ChangeID);
+
+        if (UnitRegister.instance != null)
+            UnitRegister.instance.Unregister(id);
     }
     // public int unitID;
     // public GridController gridCC;
