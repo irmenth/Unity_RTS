@@ -6,17 +6,16 @@ using Unity.Mathematics;
 [BurstCompile]
 public struct HeatMapJob : IJob
 {
-    private readonly int width, height;
+    private readonly int2 size;
     private readonly int destination;
     private NativeQueue<int> openList;
     private NativeArray<byte> inOpenList;
     private NativeArray<byte> closeList;
     private NativeArray<DirectionCell> directionGrid;
 
-    public HeatMapJob(int width, int height, int destination, NativeQueue<int> openList, NativeArray<byte> inOpenList, NativeArray<byte> closeList, NativeArray<DirectionCell> directionGrid)
+    public HeatMapJob(int2 size, int destination, NativeQueue<int> openList, NativeArray<byte> inOpenList, NativeArray<byte> closeList, NativeArray<DirectionCell> directionGrid)
     {
-        this.width = width;
-        this.height = height;
+        this.size = size;
         this.destination = destination;
         this.openList = openList;
         this.inOpenList = inOpenList;
@@ -35,7 +34,7 @@ public struct HeatMapJob : IJob
     {
         float sqr2 = math.sqrt(2f);
 
-        for (int i = 0; i < width * height; i++)
+        for (int i = 0; i < size.x * size.y; i++)
         {
             ChangeHeat(i, float.PositiveInfinity);
         }
@@ -49,7 +48,7 @@ public struct HeatMapJob : IJob
             inOpenList[curIndex] = 0;
             closeList[curIndex] = 1;
 
-            int2 curGridPos = new(curIndex / height, curIndex % height);
+            int2 curGridPos = new(curIndex / size.y, curIndex % size.y);
             for (int dx = -1; dx <= 1; dx++)
             {
                 for (int dy = -1; dy <= 1; dy++)
@@ -57,9 +56,9 @@ public struct HeatMapJob : IJob
                     if (dx == 0 && dy == 0) continue;
 
                     int nx = curGridPos.x + dx, ny = curGridPos.y + dy;
-                    if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+                    if (nx < 0 || nx >= size.x || ny < 0 || ny >= size.y) continue;
 
-                    int newIndex = nx * height + ny;
+                    int newIndex = nx * size.y + ny;
                     if (closeList[newIndex] == 1) continue;
                     if (math.isinf(directionGrid[newIndex].cost))
                     {

@@ -25,6 +25,7 @@ public struct ObstacleData
     public static bool operator !=(ObstacleData a, ObstacleData b) => !(a == b);
     public override readonly bool Equals(object obj) => obj is ObstacleData other && this == other;
     public override readonly int GetHashCode() => id.GetHashCode();
+    public override readonly string ToString() => $"obstacled data:\ntype: {type}\nid: {id}\ncircle: {circle}\nrect: {rect}";
 }
 
 public struct Circle
@@ -37,6 +38,7 @@ public struct Circle
         this.center = center;
         this.radius = radius;
     }
+    public override readonly string ToString() => $"center: {center}, radius: {radius}";
 }
 
 public struct Rectangle
@@ -53,4 +55,5 @@ public struct Rectangle
         this.right = right;
         this.up = up;
     }
+    public override readonly string ToString() => $"center: {center}, size: {size}, right: {right}, up: {up}";
 }

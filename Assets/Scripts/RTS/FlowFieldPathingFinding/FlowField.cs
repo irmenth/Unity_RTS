@@ -10,7 +10,7 @@ public class FlowField
     public NativeArray<ObstacleCell> obstacleGrid;
     public NativeParallelMultiHashMap<int, int> cellToUnit;
     public NativeParallelMultiHashMap<int, int> cellToObstacle;
-    public readonly int dgWidth, dgHeight, ogWidth, ogHeight;
+    public readonly int2 dgSize, ogSize;
     public readonly float dcRadius, dcDiameter, ocRadius, ocDiameter;
 
     /// <summary>
@@ -33,22 +33,20 @@ public class FlowField
     /// <param name="ocRadius">
     /// Radius of the ObstacleCell
     /// </param>
-    public FlowField(int dgWidth, int dgHeight, float dcRadius, int ogWidth, int ogHeight, float ocRadius)
+    public FlowField(int2 dgSize, float dcRadius, int2 ogSize, float ocRadius)
     {
-        this.dgWidth = dgWidth;
-        this.dgHeight = dgHeight;
+        this.dgSize = dgSize;
         this.dcRadius = dcRadius;
         dcDiameter = dcRadius * 2f;
-        directionGrid = new(dgWidth * dgHeight, Allocator.Persistent);
+        directionGrid = new(dgSize.x * dgSize.y, Allocator.Persistent);
 
-        this.ogWidth = ogWidth;
-        this.ogHeight = ogHeight;
+        this.ogSize = ogSize;
         this.ocRadius = ocRadius;
         ocDiameter = ocRadius * 2f;
-        obstacleGrid = new(ogWidth * ogHeight, Allocator.Persistent);
+        obstacleGrid = new(ogSize.x * ogSize.y, Allocator.Persistent);
 
-        cellToUnit = new(4 * ogWidth * ogHeight, Allocator.Persistent);
-        cellToObstacle = new(ogWidth * ogHeight, Allocator.Persistent);
+        cellToUnit = new((int)8e3f, Allocator.Persistent);
+        cellToObstacle = new(4 * ogSize.x * ogSize.y, Allocator.Persistent);
     }
 
     public void Dispose()
@@ -68,8 +66,8 @@ public class FlowField
     public int WorldToDGIndex(float2 worldPos)
     {
         int2 gridPos = new((int)math.floor(worldPos.x / dcDiameter), (int)math.floor(worldPos.y / dcDiameter));
-        if (gridPos.x < 0 || gridPos.x >= dgWidth || gridPos.y < 0 || gridPos.y >= dgHeight) return -1;
-        return gridPos.x * dgHeight + gridPos.y;
+        if (gridPos.x < 0 || gridPos.x >= dgSize.x || gridPos.y < 0 || gridPos.y >= dgSize.y) return -1;
+        return gridPos.x * dgSize.y + gridPos.y;
     }
 
     /// <summary>
@@ -81,8 +79,8 @@ public class FlowField
     public int WorldToOGIndex(float2 worldPos)
     {
         int2 gridPos = new((int)math.floor(worldPos.x / ocDiameter), (int)math.floor(worldPos.y / ocDiameter));
-        if (gridPos.x < 0 || gridPos.x >= ogWidth || gridPos.y < 0 || gridPos.y >= ogHeight) return -1;
-        return gridPos.x * ogHeight + gridPos.y;
+        if (gridPos.x < 0 || gridPos.x >= ogSize.x || gridPos.y < 0 || gridPos.y >= ogSize.y) return -1;
+        return gridPos.x * ogSize.y + gridPos.y;
     }
 
     private void ChangeCost(int index, float cost)
@@ -101,11 +99,11 @@ public class FlowField
 
     public void GenerateGridBurst()
     {
-        DirectionGridGenerationJob dirGridGenJob = new(dgHeight, dcRadius, directionGrid);
-        dirGridGenJob.Schedule(dgWidth * dgHeight, 64).Complete();
+        DirectionGridGenerationJob dirGridGenJob = new(dgSize.y, dcRadius, directionGrid);
+        dirGridGenJob.Schedule(dgSize.x * dgSize.y, 64).Complete();
 
-        ObstacleGridGenerationJob obsGridGenJob = new(ogHeight, ocRadius, obstacleGrid);
-        obsGridGenJob.Schedule(ogWidth * ogHeight, 64).Complete();
+        ObstacleGridGenerationJob obsGridGenJob = new(ogSize.y, ocRadius, obstacleGrid);
+        obsGridGenJob.Schedule(ogSize.x * ogSize.y, 64).Complete();
     }
 
     private readonly Collider[] dgBoxHitBuffter = new Collider[10];
@@ -113,11 +111,11 @@ public class FlowField
     public void GenerateCostField(LayerMask costLayerMask, int impassibleLayer, int roughLayer)
     {
         float subCellDiameter = dcDiameter / 3f;
-        for (int x = 0; x < dgWidth; x++)
+        for (int x = 0; x < dgSize.x; x++)
         {
-            for (int y = 0; y < dgHeight; y++)
+            for (int y = 0; y < dgSize.y; y++)
             {
-                int index = x * dgHeight + y;
+                int index = x * dgSize.y + y;
                 Vector3 detectPos = new(directionGrid[index].worldPos.x, -10, directionGrid[index].worldPos.y);
                 int hitCount = Physics.OverlapBoxNonAlloc(detectPos, new Vector3(dcRadius, 20, dcRadius), dgBoxHitBuffter, Quaternion.identity, costLayerMask);
 
@@ -177,13 +175,13 @@ public class FlowField
 
     public void GenerateHeatMapBurst(int destinationGridIndex)
     {
-        int size = dgWidth * dgHeight;
+        int size = dgSize.x * dgSize.y;
 
         NativeQueue<int> openList = new(Allocator.TempJob);
         NativeArray<byte> inOpenList = new(size, Allocator.TempJob);
         NativeArray<byte> closeList = new(size, Allocator.TempJob);
 
-        HeatMapJob job = new(dgWidth, dgHeight, destinationGridIndex, openList, inOpenList, closeList, directionGrid);
+        HeatMapJob job = new(dgSize, destinationGridIndex, openList, inOpenList, closeList, directionGrid);
         job.Schedule().Complete();
 
         openList.Dispose();
@@ -193,11 +191,11 @@ public class FlowField
 
     public void GenerateFlowFieldBurst()
     {
-        int size = dgWidth * dgHeight;
+        int size = dgSize.x * dgSize.y;
 
         NativeArray<float2> flowDir = new(size, Allocator.TempJob);
 
-        FlowFieldJob job = new(dgWidth, dgHeight, directionGrid, flowDir);
+        FlowFieldJob job = new(dgSize, directionGrid, flowDir);
         job.Schedule(size, 64).Complete();
 
         for (int i = 0; i < size; i++)
@@ -213,11 +211,11 @@ public class FlowField
 
     public void GenerateObstacleMap(int impassibleLayer)
     {
-        for (int x = 0; x < ogWidth; x++)
+        for (int x = 0; x < ogSize.x; x++)
         {
-            for (int y = 0; y < ogHeight; y++)
+            for (int y = 0; y < ogSize.y; y++)
             {
-                int index = x * ogHeight + y;
+                int index = x * ogSize.y + y;
                 Vector3 detectPos = new(obstacleGrid[index].worldPos.x, -10, obstacleGrid[index].worldPos.y);
                 int hitCount = Physics.OverlapBoxNonAlloc(detectPos, new Vector3(ocRadius, 20, ocRadius), ogBoxHitBuffer, Quaternion.identity, 1 << impassibleLayer);
 

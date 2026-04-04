@@ -8,9 +8,9 @@ public class GridController : MonoBehaviour
 {
     [Header("In Game")]
     [SerializeField] private GameObject unitPrefab;
-    [SerializeField] private Vector2Int directionGridSize;
+    [SerializeField] private int2 directionGridSize;
     [SerializeField] private float directionCellRadius = 0.2f;
-    [SerializeField] private Vector2Int obstacleGridSize;
+    [SerializeField] private int2 obstacleGridSize;
     [SerializeField] private float obstacleCellRadius = 0.5f;
     [SerializeField] private LayerMask costLayerMask;
     [SerializeField] private LayerMask groundLayerMask;
@@ -180,11 +180,17 @@ public class GridController : MonoBehaviour
         impassibleLayer = UsefulUtils.GetLayer(impassibleLayerMask);
         roughLayer = UsefulUtils.GetLayer(roughLayerMask);
 
+        InputActionsManager.RTSSetDestination.started += SetDestination;
+        InputActionsManager.RTSGenerateUnit.started += GenerateUnit;
+    }
+
+    private void Start()
+    {
 #if UNITY_EDITOR
         Stopwatch sw = new();
         sw.Start();
 #endif
-        flowField = new(directionGridSize.x, directionGridSize.y, directionCellRadius, obstacleGridSize.x, obstacleGridSize.y, obstacleCellRadius);
+        flowField = new(directionGridSize, directionCellRadius, obstacleGridSize, obstacleCellRadius);
         flowField.GenerateGridBurst();
         flowField.GenerateCostField(costLayerMask, impassibleLayer, roughLayer);
         flowField.GenerateObstacleMap(impassibleLayer);
@@ -192,27 +198,20 @@ public class GridController : MonoBehaviour
         sw.Stop();
         Debug.Log($"[GridController] cost field & obstacle map generation: {sw.ElapsedMilliseconds}ms");
 #endif
+        // #if UNITY_EDITOR
+        //         dirIndicatorMeshRenderers = new MeshRenderer[directionGridSize.x, directionGridSize.y];
 
-        InputActionsManager.RTSSetDestination.started += SetDestination;
-        InputActionsManager.RTSGenerateUnit.started += GenerateUnit;
+        //         for (int x = 0; x < directionGridSize.x; x++)
+        //         {
+        //             for (int y = 0; y < directionGridSize.y; y++)
+        //             {
+        //                 int index = x * directionGridSize.y + y;
+        //                 Vector3 indictorWS = new(flowField.directionGrid[index].worldPos.x, 10, flowField.directionGrid[index].worldPos.y);
+        //                 dirIndicatorMeshRenderers[x, y] = Instantiate(dirIndictorPrefab, indictorWS, Quaternion.Euler(90, 0, 0)).GetComponent<MeshRenderer>();
+        //             }
+        //         }
+        // #endif
     }
-
-    //     private void Start()
-    //     {
-    // #if UNITY_EDITOR
-    //         dirIndicatorMeshRenderers = new MeshRenderer[directionGridSize.x, directionGridSize.y];
-
-    //         for (int x = 0; x < directionGridSize.x; x++)
-    //         {
-    //             for (int y = 0; y < directionGridSize.y; y++)
-    //             {
-    //                 int index = x * directionGridSize.y + y;
-    //                 Vector3 indictorWS = new(flowField.directionGrid[index].worldPos.x, 10, flowField.directionGrid[index].worldPos.y);
-    //                 dirIndicatorMeshRenderers[x, y] = Instantiate(dirIndictorPrefab, indictorWS, Quaternion.Euler(90, 0, 0)).GetComponent<MeshRenderer>();
-    //             }
-    //         }
-    // #endif
-    //     }
 
     private void OnDestroy()
     {

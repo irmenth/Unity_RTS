@@ -7,7 +7,7 @@ public class ObstacleAgent : MonoBehaviour
     [SerializeField] private float circleRadius;
     [SerializeField] private float2 rectSize;
 
-    public int id;
+    [HideInInspector] public int id = int.MaxValue;
 
     private void ChangeID(ObstacleRemoveEvent evt)
     {

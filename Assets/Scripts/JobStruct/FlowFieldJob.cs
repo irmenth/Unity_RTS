@@ -6,14 +6,13 @@ using Unity.Mathematics;
 [BurstCompile]
 public struct FlowFieldJob : IJobParallelFor
 {
-    private readonly int width, height;
+    private readonly int2 size;
     [ReadOnly] private NativeArray<DirectionCell> directionGrid;
     private NativeArray<float2> flowDir;
 
-    public FlowFieldJob(int width, int height, NativeArray<DirectionCell> directionGrid, NativeArray<float2> flowDir)
+    public FlowFieldJob(int2 size, NativeArray<DirectionCell> directionGrid, NativeArray<float2> flowDir)
     {
-        this.width = width;
-        this.height = height;
+        this.size = size;
         this.directionGrid = directionGrid;
         this.flowDir = flowDir;
     }
@@ -28,7 +27,7 @@ public struct FlowFieldJob : IJobParallelFor
             return;
         }
 
-        int x = index / height, y = index % height;
+        int x = index / size.y, y = index % size.y;
 
         float minHeat = directionGrid[index].heat;
         float2 baseDir = float2.zero;
@@ -39,9 +38,9 @@ public struct FlowFieldJob : IJobParallelFor
                 if (dx == 0 && dy == 0) continue;
 
                 int nx = x + dx, ny = y + dy;
-                if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+                if (nx < 0 || nx >= size.x || ny < 0 || ny >= size.y) continue;
 
-                int newIndex = nx * height + ny;
+                int newIndex = nx * size.y + ny;
                 float newHeat = directionGrid[newIndex].heat;
                 if (newHeat < minHeat)
                 {

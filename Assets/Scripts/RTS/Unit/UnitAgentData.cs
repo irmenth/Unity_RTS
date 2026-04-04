@@ -24,4 +24,5 @@ public struct UnitAgentData
     public static bool operator !=(UnitAgentData a, UnitAgentData b) => a.id != b.id;
     public override readonly bool Equals(object obj) => obj is UnitAgentData other && this == other;
     public override readonly int GetHashCode() => id.GetHashCode();
+    public override readonly string ToString() => $"unit agent data:\nid: {id}, radius: {radius}, speed: {speed}, position: {position}, velocity: {velocity}, dgIndex: {dgIndex}, ogIndex: {ogIndex}";
 }

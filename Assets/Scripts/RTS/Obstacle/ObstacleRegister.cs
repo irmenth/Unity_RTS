@@ -7,18 +7,19 @@ public class ObstacleRegister : MonoBehaviour
     public NativeArray<ObstacleData> obstacleRegistry;
     public int indexer = -1;
 
-    public int Register(ObstacleData data)
-    {
-        if (data.id <= indexer) return data.id;
-        obstacleRegistry[++indexer] = data;
-        return indexer;
-    }
-
     private void ChangeID(int index, int id)
     {
         ObstacleData data = obstacleRegistry[index];
         data.id = id;
         obstacleRegistry[index] = data;
+    }
+
+    public int Register(ObstacleData data)
+    {
+        if (data.id <= indexer) return data.id;
+        obstacleRegistry[++indexer] = data;
+        ChangeID(indexer, indexer);
+        return indexer;
     }
 
     public void Unregister(int id)

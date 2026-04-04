@@ -7,18 +7,19 @@ public class UnitRegister : MonoBehaviour
     public NativeArray<UnitAgentData> unitRegistry;
     public int indexer = -1;
 
-    public int Register(UnitAgentData data)
-    {
-        if (data.id <= indexer) return data.id;
-        unitRegistry[++indexer] = data;
-        return indexer;
-    }
-
     private void ChangeID(int index, int id)
     {
         UnitAgentData data = unitRegistry[index];
         data.id = id;
         unitRegistry[index] = data;
+    }
+
+    public int Register(UnitAgentData data)
+    {
+        if (data.id <= indexer) return data.id;
+        unitRegistry[++indexer] = data;
+        ChangeID(indexer, indexer);
+        return indexer;
     }
 
     public void Unregister(int id)

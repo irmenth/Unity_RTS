@@ -18,10 +18,39 @@ public class UnitBus : MonoBehaviour
         }
     }
 
+    private void UpdateCellToUnit()
+    {
+        gc.flowField.cellToUnit.Clear();
+        UpdateCellToUnitJob job = new(
+            gc.flowField.ogSize,
+            gc.flowField.ocRadius,
+            gc.flowField.cellToUnit.AsParallelWriter(),
+            unitReg
+            );
+        job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
+    }
+
     private void UpdateUnitPositionBurst()
     {
-        UnitBusJob job = new(gc.flowField.dgWidth, gc.flowField.dgHeight, gc.flowField.ogWidth, gc.flowField.ogHeight, gc.flowField.ocRadius, Time.deltaTime, arrived, unitReg, gc.flowField.directionGrid, ObstacleRegister.instance.obstacleRegistry, gc.flowField.cellToObstacle);
+        NativeArray<UnitAgentData> unitRegRO = new(unitReg.Length, Allocator.TempJob);
+        unitRegRO.CopyFrom(unitReg);
+
+        UpdateUnitPositionJob job = new(
+            gc.flowField.dgSize,
+            gc.flowField.ogSize,
+            gc.flowField.ocRadius,
+            Time.deltaTime,
+            arrived,
+            unitReg,
+            unitRegRO,
+            gc.flowField.directionGrid,
+            ObstacleRegister.instance.obstacleRegistry,
+            gc.flowField.cellToObstacle,
+            gc.flowField.cellToUnit
+            );
         job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
+
+        unitRegRO.Dispose();
     }
 
     private float2 destination;
@@ -39,7 +68,7 @@ public class UnitBus : MonoBehaviour
 
         for (int i = 0; i <= UnitRegister.instance.indexer; i++)
         {
-            if (UsefulUtils.Approximately(unitReg[i].position, destination, 2f))
+            if (math.lengthsq(unitReg[i].position - destination) < 1f)
             {
                 arrived = true;
                 return;
@@ -59,6 +88,7 @@ public class UnitBus : MonoBehaviour
     private void Update()
     {
         DetectIsArrived();
+        UpdateCellToUnit();
         UpdateUnitGridIndex();
         UpdateUnitPositionBurst();
     }
