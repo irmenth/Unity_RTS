@@ -17,6 +17,7 @@ public class UnitAgent : MonoBehaviour
     private void Awake()
     {
         float2 pos = new(transform.position.x, transform.position.z);
+        lastPos = pos;
         UnitAgentData data = new(unitRadius, moveSpeed, pos);
         id = UnitRegister.instance.Register(data);
     }
@@ -26,13 +27,35 @@ public class UnitAgent : MonoBehaviour
         EventBus.Subscribe<UnitRemoveEvent>(ChangeID);
     }
 
+    Quaternion rot = Quaternion.identity;
+    float2 lastPos;
+    float lastPosUpdateTimer;
+
     private void Update()
     {
-        float2 pos = UnitRegister.instance.unitRegistry[id].position;
-        // float2 veloDir = math.normalizesafe(UnitRegister.instance.unitRegistry[id].velocity);
-        // Quaternion desiredRot = Quaternion.LookRotation(new(veloDir.x, 0, veloDir.y), Vector3.up);
-        // Quaternion rot = Quaternion.Slerp(transform.rotation, desiredRot, 5f * Time.deltaTime);
-        transform.SetPositionAndRotation(new(pos.x, transform.position.y, pos.y), Quaternion.identity);
+        UnitAgentData data = UnitRegister.instance.unitRegistry[id];
+        float2 pos = data.position;
+        float2 posToLast = pos - lastPos;
+        if (!UsefulUtils.Approximately(posToLast, float2.zero))
+        {
+            if (lastPosUpdateTimer > 0.1f)
+            {
+                if (math.lengthsq(posToLast) > 0.1f * 0.8f * data.curMaxSpeed) lastPos = pos;
+                lastPosUpdateTimer = 0;
+            }
+            else
+            {
+                lastPosUpdateTimer += Time.deltaTime;
+            }
+
+            if (!UnitBus.arrived)
+            {
+                Quaternion desiredRot = Quaternion.LookRotation(new(posToLast.x, 0, posToLast.y), Vector3.up);
+                rot = Quaternion.Slerp(transform.rotation, desiredRot, 2f * Time.deltaTime);
+            }
+        }
+
+        transform.SetPositionAndRotation(new(pos.x, transform.position.y, pos.y), rot);
     }
 
     private void OnDisable()

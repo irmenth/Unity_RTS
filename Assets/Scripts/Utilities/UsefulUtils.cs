@@ -17,17 +17,13 @@ public static class UsefulUtils
         return layer;
     }
 
-    public static Vector3 V2ToV3(Vector2 v2, float y = 0f) => new(v2.x, y, v2.y);
+    public static bool Approximately(Vector2 a, Vector2 b, float eps = 1e-3f) => Vector2.SqrMagnitude(a - b) < Mathf.Pow(eps, 2f);
 
-    public static Vector2 V3ToV2(Vector3 v3) => new(v3.x, v3.z);
+    public static bool Approximately(Vector3 a, Vector3 b, float eps = 1e-3f) => Vector3.SqrMagnitude(a - b) < Mathf.Pow(eps, 2f);
 
-    public static bool Approximately(Vector2 a, Vector2 b, float eps = 1e-6f) => Vector2.SqrMagnitude(a - b) < Mathf.Pow(eps, 2f);
+    public static bool Approximately(float2 a, float2 b, float eps = 1e-3f) => math.lengthsq(a - b) < math.pow(eps, 2f);
 
-    public static bool Approximately(Vector3 a, Vector3 b, float eps = 1e-6f) => Vector3.SqrMagnitude(a - b) < Mathf.Pow(eps, 2f);
-
-    public static bool Approximately(float2 a, float2 b, float eps = 1e-6f) => math.lengthsq(a - b) < math.pow(eps, 2f);
-
-    public static bool Approximately(float3 a, float3 b, float eps = 1e-6f) => math.lengthsq(a - b) < math.pow(eps, 2f);
+    public static bool Approximately(float3 a, float3 b, float eps = 1e-3f) => math.lengthsq(a - b) < math.pow(eps, 2f);
 
     public static float2 ClampMagnitude(float2 v, float maxLength)
     {
@@ -64,7 +60,7 @@ public static class UsefulUtils
         if (isIntersected)
         {
             float2 dir = math.normalizesafe(unitWS - center);
-            position = center + (circle.radius + 1e-6f + unitRadius) * dir;
+            position = center + (circle.radius + 1e-3f + unitRadius) * dir;
         }
 
         return position;
@@ -109,14 +105,14 @@ public static class UsefulUtils
         bool isCollided = isInside || math.lengthsq(closestPoint - unitLS) < math.pow(unitRadius, 2);
         if (isCollided)
         {
-            if (math.abs(unitLS.x - halfSize.x) < 1e-6f)
-                closestPoint.x += math.select(1e-6f, -1e-6f, unitLS.x > closestPoint.x);
-            else if (math.abs(unitLS.x + halfSize.x) < 1e-6f)
-                closestPoint.x += math.select(1e-6f, -1e-6f, unitLS.x > closestPoint.x);
-            if (math.abs(unitLS.y - halfSize.y) < 1e-6f)
-                closestPoint.y += math.select(1e-6f, -1e-6f, unitLS.y > closestPoint.y);
-            else if (math.abs(unitLS.y + halfSize.y) < 1e-6f)
-                closestPoint.y += math.select(1e-6f, -1e-6f, unitLS.y > closestPoint.y);
+            if (math.abs(unitLS.x - halfSize.x) < 1e-3f)
+                closestPoint.x += math.select(1e-3f, -1e-3f, unitLS.x > closestPoint.x);
+            else if (math.abs(unitLS.x + halfSize.x) < 1e-3f)
+                closestPoint.x += math.select(1e-3f, -1e-3f, unitLS.x > closestPoint.x);
+            if (math.abs(unitLS.y - halfSize.y) < 1e-3f)
+                closestPoint.y += math.select(1e-3f, -1e-3f, unitLS.y > closestPoint.y);
+            else if (math.abs(unitLS.y + halfSize.y) < 1e-3f)
+                closestPoint.y += math.select(1e-3f, -1e-3f, unitLS.y > closestPoint.y);
 
             float2 dirLS = unitLS - closestPoint;
             float2 dirWS = math.normalizesafe(dirLS.x * right + dirLS.y * up);
@@ -171,19 +167,19 @@ public static class UsefulUtils
         var isIntersected = isInside || math.lengthsq(closestPoint - unitLS) < math.pow(unitRadius, 2);
         if (isIntersected)
         {
-            if (math.abs(unitLS.x - halfSize.x) < 1e-6f)
-                closestPoint.x += math.select(1e-6f, -1e-6f, unitLS.x > closestPoint.x);
-            else if (math.abs(unitLS.x + halfSize.x) < 1e-6f)
-                closestPoint.x += math.select(1e-6f, -1e-6f, unitLS.x > closestPoint.x);
-            if (math.abs(unitLS.y - halfSize.y) < 1e-6f)
-                closestPoint.y += math.select(1e-6f, -1e-6f, unitLS.y > closestPoint.y);
-            else if (math.abs(unitLS.y + halfSize.y) < 1e-6f)
-                closestPoint.y += math.select(1e-6f, -1e-6f, unitLS.y > closestPoint.y);
+            if (math.abs(unitLS.x - halfSize.x) < 1e-3f)
+                closestPoint.x += math.select(1e-3f, -1e-3f, unitLS.x > closestPoint.x);
+            else if (math.abs(unitLS.x + halfSize.x) < 1e-3f)
+                closestPoint.x += math.select(1e-3f, -1e-3f, unitLS.x > closestPoint.x);
+            if (math.abs(unitLS.y - halfSize.y) < 1e-3f)
+                closestPoint.y += math.select(1e-3f, -1e-3f, unitLS.y > closestPoint.y);
+            else if (math.abs(unitLS.y + halfSize.y) < 1e-3f)
+                closestPoint.y += math.select(1e-3f, -1e-3f, unitLS.y > closestPoint.y);
 
             float2 closestPointWS = center + closestPoint.x * right + closestPoint.y * up;
             float2 dirLS = unitLS - closestPoint;
             float2 dirWS = math.normalizesafe(dirLS.x * right + dirLS.y * up);
-            position = math.select(closestPointWS + (unitRadius + 1e-6f) * dirWS, closestPointWS - (unitRadius + 1e-6f) * dirWS, isInside);
+            position = math.select(closestPointWS + (unitRadius + 1e-3f) * dirWS, closestPointWS - (unitRadius + 1e-3f) * dirWS, isInside);
         }
 
         return position;

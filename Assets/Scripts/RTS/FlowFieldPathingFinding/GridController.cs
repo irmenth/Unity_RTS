@@ -103,7 +103,7 @@ public class GridController : MonoBehaviour
                 float2 dir = flowField.directionGrid[index].direction;
 
                 Material dirIndictorMat = null;
-                if (UsefulUtils.Approximately(dir, new float2(-1, -1)))
+                if (math.isinf(dir.x) && math.isinf(dir.y))
                     dirIndictorMat = cross;
                 else if (UsefulUtils.Approximately(dir, new float2(0, 1)))
                     dirIndictorMat = upArrow;
@@ -146,10 +146,10 @@ public class GridController : MonoBehaviour
             int mouseGridIndex = flowField.WorldToDGIndex(hitPoint);
             if (mouseGridIndex == -1) return;
 
-            flowField.GenerateHeatMapBurst(mouseGridIndex);
+            float2 dest = flowField.GenerateHeatMapBurst(mouseGridIndex);
             flowField.GenerateFlowFieldBurst();
 
-            EventBus.Publish(new MoveToEvent(hitPoint));
+            EventBus.Publish(new MoveToEvent(UsefulUtils.Approximately(dest, new(-1, -1)) ? hitPoint : dest));
         }
 
 #if UNITY_EDITOR
@@ -165,7 +165,10 @@ public class GridController : MonoBehaviour
         Ray ray = Camera.main.ScreenPointToRay(mousePos);
         if (Physics.Raycast(ray, out RaycastHit hit, 1000f, groundLayerMask))
         {
-            Instantiate(unitPrefab, hit.point, Quaternion.identity);
+            for (int i = 0; i < 10; i++)
+            {
+                Instantiate(unitPrefab, hit.point, Quaternion.identity);
+            }
             Debug.Log($"[GridController] unit count: {UnitRegister.instance.indexer + 1}");
         }
     }

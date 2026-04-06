@@ -34,7 +34,7 @@ public class UnitRegister : MonoBehaviour
     private void Awake()
     {
         instance = this;
-        unitRegistry = new((int)1e3f, Allocator.Persistent);
+        unitRegistry = new((int)2e3f, Allocator.Persistent);
     }
 
     private void OnDestroy()

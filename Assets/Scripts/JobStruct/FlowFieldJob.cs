@@ -23,7 +23,7 @@ public struct FlowFieldJob : IJobParallelFor
 
         if (math.isinf(directionGrid[index].heat))
         {
-            flowDir[index] = new(-1, -1);
+            flowDir[index] = new(float.PositiveInfinity, float.PositiveInfinity);
             return;
         }
 
@@ -45,11 +45,11 @@ public struct FlowFieldJob : IJobParallelFor
                 if (newHeat < minHeat)
                 {
                     minHeat = newHeat;
-                    baseDir = new float2(dx, dy);
+                    baseDir = new(dx, dy);
                 }
             }
         }
-        if (math.abs(minHeat - directionGrid[index].heat) < 1e-6f) return;
+        if (math.abs(minHeat - directionGrid[index].heat) < 1e-3f) return;
 
         flowDir[index] = math.normalize(baseDir);
     }

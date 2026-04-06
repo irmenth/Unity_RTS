@@ -7,13 +7,20 @@ using Unity.Mathematics;
 public struct HeatMapJob : IJob
 {
     private readonly int2 size;
-    private readonly int destination;
+    private NativeArray<int> destination;
     private NativeQueue<int> openList;
     private NativeArray<byte> inOpenList;
     private NativeArray<byte> closeList;
     private NativeArray<DirectionCell> directionGrid;
 
-    public HeatMapJob(int2 size, int destination, NativeQueue<int> openList, NativeArray<byte> inOpenList, NativeArray<byte> closeList, NativeArray<DirectionCell> directionGrid)
+    public HeatMapJob(
+        int2 size,
+        NativeArray<int> destination,
+        NativeQueue<int> openList,
+        NativeArray<byte> inOpenList,
+        NativeArray<byte> closeList,
+        NativeArray<DirectionCell> directionGrid
+        )
     {
         this.size = size;
         this.destination = destination;
@@ -38,9 +45,41 @@ public struct HeatMapJob : IJob
         {
             ChangeHeat(i, float.PositiveInfinity);
         }
-        ChangeHeat(destination, 0f);
-        openList.Enqueue(destination);
-        inOpenList[destination] = 1;
+
+        if (math.isinf(directionGrid[destination[0]].cost))
+        {
+            int step = 1;
+            while (step < math.max(size.x, size.y))
+            {
+                bool canBreak = false;
+                for (int dx = -step; dx <= step; dx++)
+                {
+                    for (int dy = -step; dy <= step; dy++)
+                    {
+                        if (dx != -step && dx != step && dy != step && dy != step) continue;
+
+                        int2 newPos = new(destination[0] / size.y + dx, destination[0] % size.y + dy);
+                        if (newPos.x < 0 || newPos.x >= size.x || newPos.y < 0 || newPos.y >= size.y) continue;
+                        int newIndex = newPos.x * size.y + newPos.y;
+
+                        if (math.isfinite(directionGrid[newIndex].cost))
+                        {
+                            destination[0] = newIndex;
+                            canBreak = true;
+                            break;
+                        }
+                    }
+                    if (canBreak) break;
+                }
+                if (canBreak) break;
+
+                step++;
+            }
+        }
+
+        ChangeHeat(destination[0], 0f);
+        openList.Enqueue(destination[0]);
+        inOpenList[destination[0]] = 1;
 
         while (openList.Count > 0)
         {

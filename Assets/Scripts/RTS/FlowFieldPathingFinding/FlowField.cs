@@ -173,20 +173,26 @@ public class FlowField
         }
     }
 
-    public void GenerateHeatMapBurst(int destinationGridIndex)
+    public float2 GenerateHeatMapBurst(int destinationGridIndex)
     {
         int size = dgSize.x * dgSize.y;
 
         NativeQueue<int> openList = new(Allocator.TempJob);
         NativeArray<byte> inOpenList = new(size, Allocator.TempJob);
         NativeArray<byte> closeList = new(size, Allocator.TempJob);
+        NativeArray<int> destination = new(1, Allocator.TempJob);
 
-        HeatMapJob job = new(dgSize, destinationGridIndex, openList, inOpenList, closeList, directionGrid);
+        destination[0] = destinationGridIndex;
+        HeatMapJob job = new(dgSize, destination, openList, inOpenList, closeList, directionGrid);
         job.Schedule().Complete();
+        int destIndex = destination[0];
 
         openList.Dispose();
         inOpenList.Dispose();
         closeList.Dispose();
+        destination.Dispose();
+
+        return destIndex == destinationGridIndex ? new(-1, -1) : directionGrid[destIndex].worldPos;
     }
 
     public void GenerateFlowFieldBurst()

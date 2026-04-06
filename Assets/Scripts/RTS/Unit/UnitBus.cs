@@ -52,7 +52,6 @@ public class UnitBus : MonoBehaviour
         UpdateUnitPositionJob job = new(
             gc.flowField.dgSize,
             gc.flowField.ogSize,
-            gc.flowField.dcRadius,
             gc.flowField.ocRadius,
             Time.deltaTime,
             arrived,
@@ -68,8 +67,8 @@ public class UnitBus : MonoBehaviour
         unitRegRO.Dispose();
     }
 
+    public static bool arrived = true;
     private float2 destination;
-    private bool arrived = true;
 
     private void SetDestination(MoveToEvent evt)
     {
@@ -88,6 +87,8 @@ public class UnitBus : MonoBehaviour
 
     private void Update()
     {
+        if (UnitRegister.instance.indexer < 0) return;
+
         UpdateCellToUnit();
         UpdateUnitGridIndex();
         DetectArrived();

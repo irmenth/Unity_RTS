@@ -10,7 +10,7 @@ public struct DirectionCell
     /// </summary>
     public float heat;
     /// <summary>
-    /// (-1, -1) means impassible
+    /// (int.MaxValue, int.MaxValue) means impassible
     /// </summary>
     public float2 direction;
 
@@ -20,7 +20,7 @@ public struct DirectionCell
         this.worldPos = worldPos;
         cost = 1;
         heat = float.PositiveInfinity;
-        direction = new(-1, -1);
+        direction = new(float.PositiveInfinity, float.PositiveInfinity);
     }
 }
 
