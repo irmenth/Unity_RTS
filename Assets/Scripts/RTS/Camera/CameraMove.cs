@@ -9,12 +9,22 @@ public class CameraMove : MonoBehaviour
 
     private bool shouldMove;
     private Vector2 mouseStartPos;
+    private Vector3 right = Vector3.right, forward = Vector3.forward;
+    private float lastRotAngle;
 
     private void MoveCamera()
     {
+        float curRotAngle = tr.rotation.eulerAngles.y;
+        if (Mathf.Abs(curRotAngle - lastRotAngle) < 1e-3f)
+        {
+            right = new Vector3(tr.right.x, 0, tr.right.z).normalized;
+            forward = new Vector3(tr.forward.x, 0, tr.forward.z).normalized;
+        }
+        lastRotAngle = curRotAngle;
+
         Vector2 mouseCurPos = Pointer.current.position.ReadValue();
         Vector2 delta = mouseCurPos - mouseStartPos;
-        Vector3 targetPos = tr.position + moveSpeed * Time.deltaTime * new Vector3(-delta.x, 0, -delta.y);
+        Vector3 targetPos = tr.position + moveSpeed * Time.deltaTime * (-delta.x * right - delta.y * forward);
         targetPos.x = Mathf.Clamp(targetPos.x, mapLeftBottom.x, mapRightTop.x);
         targetPos.z = Mathf.Clamp(targetPos.z, mapLeftBottom.y, mapRightTop.y);
         tr.position = targetPos;

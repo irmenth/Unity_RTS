@@ -55,7 +55,7 @@ public class UnitBus : MonoBehaviour
         unitRegRO.Dispose();
     }
 
-    private float2 destination;
+    private float2 destination = new(float.PositiveInfinity, float.PositiveInfinity);
     private float destRadius;
 
     private void SetDestination(MoveToEvent evt)

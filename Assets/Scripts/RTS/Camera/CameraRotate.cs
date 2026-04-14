@@ -3,13 +3,16 @@ using UnityEngine.InputSystem;
 
 public class CameraRotate : MonoBehaviour
 {
-    [SerializeField] private float rotationSpeed;
+    [SerializeField][Range(0, 100)] private float rotationSpeed;
 
     private float startX;
     private bool shouldRotate = false;
 
     private void RotateCamera()
     {
+        bool shiftHeld = Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed;
+        if (shiftHeld) return;
+
         float curX = Pointer.current.position.ReadValue().x;
         float delta = curX - startX;
         tr.Rotate(Vector3.up, delta * rotationSpeed * Time.deltaTime, Space.World);

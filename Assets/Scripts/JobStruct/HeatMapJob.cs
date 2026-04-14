@@ -56,7 +56,7 @@ public struct HeatMapJob : IJob
                 {
                     for (int dy = -step; dy <= step; dy++)
                     {
-                        if (dx != -step && dx != step && dy != step && dy != step) continue;
+                        if (dx != -step && dx != step && dy != -step && dy != step) continue;
 
                         int2 newPos = new(destination[0] / size.y + dx, destination[0] % size.y + dy);
                         if (newPos.x < 0 || newPos.x >= size.x || newPos.y < 0 || newPos.y >= size.y) continue;

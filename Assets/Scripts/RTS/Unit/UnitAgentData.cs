@@ -10,7 +10,6 @@ public struct UnitAgentData
     public float2 velocity;
     public int dgIndex;
     public int ogIndex;
-    public float2 lastDir;
     public bool arrived;
 
     public UnitAgentData(float radius, float speed, float2 position)
@@ -23,7 +22,6 @@ public struct UnitAgentData
         velocity = new float2(0, 0);
         dgIndex = -1;
         ogIndex = -1;
-        lastDir = new float2(float.PositiveInfinity, float.PositiveInfinity);
         arrived = true;
     }
     public static bool operator ==(UnitAgentData a, UnitAgentData b) => a.id == b.id;

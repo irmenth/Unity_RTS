@@ -45,7 +45,7 @@ public class FlowField
         ocDiameter = ocRadius * 2f;
         obstacleGrid = new(ogSize.x * ogSize.y, Allocator.Persistent);
 
-        cellToUnit = new((int)8e3f, Allocator.Persistent);
+        cellToUnit = new((int)4.8e4f, Allocator.Persistent);
         cellToObstacle = new(4 * ogSize.x * ogSize.y, Allocator.Persistent);
     }
 
