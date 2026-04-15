@@ -95,9 +95,9 @@ public struct UpdateUnitPositionJob : IJobParallelFor
                             float dist = math.length(diff);
                             float2 sepDir = dist < 1e-3f ? rand.NextFloat2Direction() : diff / dist;
                             float linearFactor = 1 - math.saturate(dist / maxDist);
-                            float overLap = 32 * agentData.curMaxSpeed * math.saturate(overLapDist - dist);
+                            float overLap = 16 * agentData.curMaxSpeed * math.saturate(overLapDist - dist);
                             float radiusFactor = math.clamp(data.radius / agentData.radius, 0.1f, 20f);
-                            float mag = (16 * agentData.curMaxSpeed * linearFactor + overLap) * radiusFactor;
+                            float mag = (8 * agentData.curMaxSpeed * linearFactor + overLap) * radiusFactor;
                             sepAccSum += mag * sepDir;
                             count++;
                         }
@@ -143,7 +143,7 @@ public struct UpdateUnitPositionJob : IJobParallelFor
         // ApplyAcceleration()
         if (count > 0)
         {
-            sepAccSum = UsefulUtils.ClampMagnitude(sepAccSum, 16 * agentData.curMaxSpeed);
+            sepAccSum = UsefulUtils.ClampMagnitude(sepAccSum, 8 * agentData.curMaxSpeed);
             agentData.velocity += deltaTime * (-sepAccSum);
         }
         if (!agentData.arrived)
