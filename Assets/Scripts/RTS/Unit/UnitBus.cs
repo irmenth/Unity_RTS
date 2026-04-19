@@ -7,15 +7,23 @@ public class UnitBus : MonoBehaviour
 {
     [SerializeField] private GridController gc;
 
-    private void UpdateArrived()
+    private void UpdateArrivedBurst()
     {
-        int arrivedCount = 0;
-        for (int i = 0; i < UnitRegister.instance.indexer + 1; i++)
-        {
-            if (math.lengthsq(unitReg[i].position - destination) < destRadius * destRadius) arrivedCount++;
-        }
+        if (math.abs(destRadius) < 1e-6f || arrived) return;
 
-        if (arrivedCount / (UnitRegister.instance.indexer + 1f) >= 0.8f) arrived = true;
+        NativeArray<bool> tarrived = new(1, Allocator.TempJob);
+
+        UpdateArrivedJob job = new(
+            tarrived,
+            unitReg,
+            UnitRegister.instance.indexer,
+            destination,
+            destRadius
+            );
+        job.Schedule().Complete();
+        arrived = tarrived[0];
+
+        tarrived.Dispose();
     }
 
     private void UpdateUnitGridIndexBurst()
@@ -101,7 +109,7 @@ public class UnitBus : MonoBehaviour
     {
         if (UnitRegister.instance.indexer + 1 <= 0) return;
 
-        UpdateArrived();
+        UpdateArrivedBurst();
         UpdateCellToUnitBurst();
         UpdateUnitGridIndexBurst();
         UpdateUnitPositionBurst();

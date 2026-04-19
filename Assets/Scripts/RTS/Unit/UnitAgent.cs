@@ -5,10 +5,9 @@ public class UnitAgent : MonoBehaviour
 {
     [SerializeField] private float moveSpeed;
     [SerializeField] private float unitRadius;
-    [SerializeField] private SkinnedMeshRenderer smr;
+    [SerializeField] private MeshRenderer meshRenderer;
     [SerializeField] private float clipLength;
     [SerializeField] private int clipFrame;
-    [SerializeField][Range(0, 20)] private float speed;
 
     [HideInInspector] public int id;
 
@@ -27,7 +26,7 @@ public class UnitAgent : MonoBehaviour
         UnitAgentData data = UnitRegister.instance.unitRegistry[id];
         float2 pos = data.position;
         float2 posToLast = pos - lastPos;
-        if (!UsefulUtils.Approximately(posToLast, float2.zero))
+        if (math.lengthsq(posToLast) > 1e-4f)
         {
             if (lastPosUpdateTimer > 0.1f)
             {
@@ -62,8 +61,9 @@ public class UnitAgent : MonoBehaviour
     private static readonly int frame2Prop = Shader.PropertyToID("_Frame2");
     private static readonly int tProp = Shader.PropertyToID("_T");
     private int curStateFrame, lerpFrame;
-    private int frameOffset;
     private bool shouldLerp;
+    private int frameOffset;
+    private float speed;
 
     private void OnStateStart(AnimationState state, bool usingJudge)
     {
@@ -75,13 +75,21 @@ public class UnitAgent : MonoBehaviour
         stateChangeTimer = 0;
         shouldLerp = true;
 
-        frameOffset = state switch
+        switch (state)
         {
-            AnimationState.Idle => 0,
-            AnimationState.Walk => 90,
-            AnimationState.Attack => 180,
-            _ => 0
-        };
+            case AnimationState.Idle:
+                frameOffset = 0;
+                speed = 2f;
+                break;
+            case AnimationState.Walk:
+                frameOffset = 90;
+                speed = 2.5f;
+                break;
+            case AnimationState.Attack:
+                frameOffset = 180;
+                speed = 2.5f;
+                break;
+        }
     }
 
     private void OnStateUpdate(AnimationState state)
@@ -94,7 +102,7 @@ public class UnitAgent : MonoBehaviour
         mpb.SetFloat(frame2Prop, lerpFrame);
         mpb.SetFloat(tProp, t);
 
-        smr.SetPropertyBlock(mpb);
+        // meshRenderer.SetPropertyBlock(mpb);
     }
 
     private Transform tr;

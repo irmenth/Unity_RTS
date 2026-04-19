@@ -10,7 +10,6 @@ public struct UnitAgentData
     public float2 velocity;
     public int dgIndex;
     public int ogIndex;
-    public bool arrived;
 
     public UnitAgentData(float radius, float speed, float2 position)
     {
@@ -19,10 +18,9 @@ public struct UnitAgentData
         this.speed = speed;
         curMaxSpeed = speed;
         this.position = position;
-        velocity = new float2(0, 0);
+        velocity = float2.zero;
         dgIndex = -1;
         ogIndex = -1;
-        arrived = true;
     }
     public static bool operator ==(UnitAgentData a, UnitAgentData b) => a.id == b.id;
     public static bool operator !=(UnitAgentData a, UnitAgentData b) => a.id != b.id;
