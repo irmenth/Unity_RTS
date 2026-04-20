@@ -5,7 +5,7 @@ public class UnitRegister : MonoBehaviour
 {
     public static UnitRegister instance;
     public NativeArray<UnitAgentData> unitRegistry;
-    public int indexer = -1;
+    [HideInInspector] public int indexer = -1;
 
     private void ChangeID(int index, int id)
     {

@@ -67,46 +67,6 @@ public struct UpdateUnitPositionJob : IJobParallelFor
         float cost = directionGrid[agentData.dgIndex].cost;
         agentData.curMaxSpeed = math.select(agentData.speed / cost, agentData.speed, math.isinf(cost));
 
-        // BoidsAcceleration()
-        float2 sepAccSum = float2.zero;
-        int count = 0;
-        for (int dx = -steps; dx <= steps; dx++)
-        {
-            for (int dy = -steps; dy <= steps; dy++)
-            {
-                if (steps >= innerSteps && dx >= -steps + innerSteps && dx <= steps - innerSteps && dy >= -steps + innerSteps && dy <= steps - innerSteps) continue;
-
-                int2 newPos = new(ogPos.x + dx, ogPos.y + dy);
-                if (newPos.x < 0 || newPos.x >= ogSize.x || newPos.y < 0 || newPos.y >= ogSize.y) continue;
-                int newIndex = newPos.x * ogSize.y + newPos.y;
-
-                if (cellToUnit.TryGetFirstValue(newIndex, out int id, out NativeParallelMultiHashMapIterator<int> it))
-                {
-                    do
-                    {
-                        if (id == agentData.id) continue;
-                        UnitAgentData otherData = unitRegRO[id];
-
-                        float2 diff = otherData.position - agentData.position;
-                        float totalRadius = agentData.radius + otherData.radius;
-                        float maxDist = totalRadius + 0.2f * math.min(agentData.radius, otherData.radius);
-                        float overLapDist = totalRadius;
-                        if (math.lengthsq(diff) < maxDist * maxDist)
-                        {
-                            float dist = math.length(diff);
-                            float2 sepDir = dist < 1e-3f ? rand.NextFloat2Direction() : diff / dist;
-                            float linearFactor = 1 - math.saturate((dist - totalRadius) / (maxDist - totalRadius));
-                            float overLap = 32 * agentData.curMaxSpeed * (1 - math.saturate(dist / overLapDist));
-                            float radiusFactor = math.clamp(otherData.radius / agentData.radius, 0.1f, 20f);
-                            float mag = (16 * agentData.curMaxSpeed * linearFactor + overLap) * radiusFactor;
-                            sepAccSum += mag * sepDir;
-                            count++;
-                        }
-                    } while (cellToUnit.TryGetNextValue(out id, ref it));
-                }
-            }
-        }
-
         // FlowFieldAcceleration()
         if (!arrived)
         {
@@ -141,13 +101,62 @@ public struct UpdateUnitPositionJob : IJobParallelFor
             }
         }
 
+        // BoidsAcceleration()
+        float2 sepAccSum = float2.zero;
+        int count = 0;
+        float alignFactor = 0;
+        int alignCount = 0;
+        for (int dx = -steps; dx <= steps; dx++)
+        {
+            for (int dy = -steps; dy <= steps; dy++)
+            {
+                if (steps >= innerSteps && dx >= -steps + innerSteps && dx <= steps - innerSteps && dy >= -steps + innerSteps && dy <= steps - innerSteps) continue;
+
+                int2 newPos = new(ogPos.x + dx, ogPos.y + dy);
+                if (newPos.x < 0 || newPos.x >= ogSize.x || newPos.y < 0 || newPos.y >= ogSize.y) continue;
+                int newIndex = newPos.x * ogSize.y + newPos.y;
+
+                if (cellToUnit.TryGetFirstValue(newIndex, out int id, out NativeParallelMultiHashMapIterator<int> it))
+                {
+                    do
+                    {
+                        if (id == agentData.id) continue;
+                        UnitAgentData otherData = unitRegRO[id];
+
+                        float2 diff = otherData.position - agentData.position;
+                        float totalRadius = agentData.radius + otherData.radius;
+                        float maxDist = totalRadius + 0.2f * math.min(agentData.radius, otherData.radius);
+                        float overLapDist = totalRadius;
+                        if (math.lengthsq(diff) < maxDist * maxDist)
+                        {
+                            float dist = math.length(diff);
+                            float2 sepDir = dist < 1e-3f ? rand.NextFloat2Direction() : diff / dist;
+                            float linearFactor = 1 - math.saturate((dist - totalRadius) / (maxDist - totalRadius));
+                            float overLap = 32 * agentData.curMaxSpeed * (1 - math.saturate(dist / overLapDist));
+                            float radiusFactor = math.clamp(otherData.radius / agentData.radius, 0.1f, 20f);
+                            float mag = (16 * agentData.curMaxSpeed * linearFactor + overLap) * radiusFactor;
+                            sepAccSum += mag * sepDir;
+                            count++;
+
+                            if (math.dot(baseDir, sepDir) > 0)
+                            {
+                                alignFactor += linearFactor;
+                                alignCount++;
+                            }
+                        }
+                    } while (cellToUnit.TryGetNextValue(out id, ref it));
+                }
+            }
+        }
+
         // ApplyAcceleration()
+        alignFactor = 1 - math.saturate(math.select(0, alignFactor / alignCount, alignCount > 0));
         float2 totalAcc = float2.zero;
-        totalAcc += -sepAccSum;
         if (!arrived)
         {
-            totalAcc += 4 * agentData.curMaxSpeed * baseDir;
+            totalAcc += alignFactor * 4 * agentData.curMaxSpeed * baseDir;
         }
+        totalAcc += -sepAccSum;
         totalAcc = UsefulUtils.ClampMagnitude(totalAcc, 2 * agentData.curMaxSpeed);
         agentData.velocity += deltaTime * totalAcc;
         agentData.velocity = UsefulUtils.ClampMagnitude(agentData.velocity, agentData.curMaxSpeed);

@@ -183,8 +183,8 @@ public class GridController : MonoBehaviour
         impassibleLayer = UsefulUtils.GetLayer(impassibleLayerMask);
         roughLayer = UsefulUtils.GetLayer(roughLayerMask);
 
-        InputActionsManager.RTSSetDestination.started += SetDestination;
-        InputActionsManager.RTSGenerateUnit.started += GenerateUnit;
+        InputActionsManager.RTSSetOrangeDestination.started += SetDestination;
+        InputActionsManager.RTSGenerateOrangeUnit.started += GenerateUnit;
     }
 
     private void Start()
@@ -220,7 +220,7 @@ public class GridController : MonoBehaviour
     {
         flowField.Dispose();
 
-        InputActionsManager.RTSSetDestination.started -= SetDestination;
-        InputActionsManager.RTSGenerateUnit.started -= GenerateUnit;
+        InputActionsManager.RTSSetOrangeDestination.started -= SetDestination;
+        InputActionsManager.RTSGenerateOrangeUnit.started -= GenerateUnit;
     }
 }

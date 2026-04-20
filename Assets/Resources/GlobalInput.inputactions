@@ -7,7 +7,7 @@
             "id": "2b70213e-57af-4daf-8650-57f9edde719d",
             "actions": [
                 {
-                    "name": "SetDestination",
+                    "name": "SetOrangeDestination",
                     "type": "Button",
                     "id": "ad2ed450-1b59-4846-9b4d-90216f7ba381",
                     "expectedControlType": "",
@@ -16,9 +16,27 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "GenerateUnit",
+                    "name": "SetBlueDestination",
+                    "type": "Button",
+                    "id": "c4efbdff-d323-40c2-bc37-7cc8bade831c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "GenerateOrangeUnit",
                     "type": "Button",
                     "id": "fac37e26-0a5e-4ffa-85ae-b24dd18d7da4",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "GenerateBlueUnit",
+                    "type": "Button",
+                    "id": "c8364522-368d-40e0-bd09-66fa2ce2d3ad",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -51,18 +69,18 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "SetDestination",
+                    "action": "SetOrangeDestination",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
                     "id": "3749c79c-904c-4fb7-9ac1-04ab36821172",
-                    "path": "<Keyboard>/g",
+                    "path": "<Keyboard>/o",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "GenerateUnit",
+                    "action": "GenerateOrangeUnit",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -109,6 +127,28 @@
                     "action": "CameraMove",
                     "isComposite": false,
                     "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "3afa21e3-4d9b-4ac2-8f8b-7dad5be05f7a",
+                    "path": "<Keyboard>/b",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "GenerateBlueUnit",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1ad7aa34-f15b-482f-beb8-ca2de099a8bb",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SetBlueDestination",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         }

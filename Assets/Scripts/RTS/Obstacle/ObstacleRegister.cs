@@ -5,7 +5,7 @@ public class ObstacleRegister : MonoBehaviour
 {
     public static ObstacleRegister instance;
     public NativeArray<ObstacleData> obstacleRegistry;
-    public int indexer = -1;
+    [HideInInspector] public int indexer = -1;
 
     private void ChangeID(int index, int id)
     {

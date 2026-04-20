@@ -11,8 +11,7 @@ public enum AnimationState
 public class AnimationStateMachine
 {
     public AnimationState curState;
-    private readonly List<(AnimationState from, AnimationState to)> stateTable = new();
-    private readonly List<Func<bool>> stateConditions = new();
+    private readonly Dictionary<(AnimationState from, AnimationState to), Func<bool>> transitions = new();
     private readonly Action<AnimationState, bool> onStateStart;
     private readonly Action<AnimationState> onStateUpdate;
 
@@ -27,19 +26,18 @@ public class AnimationStateMachine
 
     public void AddTransition(AnimationState from, AnimationState to, Func<bool> condition)
     {
-        if (stateTable.Contains((from, to))) return;
+        if (transitions.ContainsKey((from, to))) return;
 
-        stateTable.Add((from, to));
-        stateConditions.Add(condition);
+        transitions.Add((from, to), condition);
     }
 
     public void Update()
     {
-        for (int i = 0; i < stateTable.Count; i++)
+        foreach (var transition in transitions)
         {
-            if (stateTable[i].from == curState && stateConditions[i]())
+            if (transition.Key.from == curState && transition.Value())
             {
-                onStateStart?.Invoke(stateTable[i].to, true);
+                onStateStart?.Invoke(transition.Key.to, true);
                 break;
             }
         }

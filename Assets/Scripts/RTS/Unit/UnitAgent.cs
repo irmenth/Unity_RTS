@@ -3,11 +3,14 @@ using UnityEngine;
 
 public class UnitAgent : MonoBehaviour
 {
+    [Header("Animation")]
     [SerializeField] private float moveSpeed;
     [SerializeField] private float unitRadius;
-    [SerializeField] private MeshRenderer meshRenderer;
     [SerializeField] private float clipLength;
     [SerializeField] private int clipFrame;
+    [Header("Render")]
+    [SerializeField] private Material sharedMaterial;
+    [SerializeField] private Mesh sharedMesh;
 
     [HideInInspector] public int id;
 
@@ -57,9 +60,6 @@ public class UnitAgent : MonoBehaviour
         else isMoving = true;
     }
 
-    private static readonly int frame1Prop = Shader.PropertyToID("_Frame1");
-    private static readonly int frame2Prop = Shader.PropertyToID("_Frame2");
-    private static readonly int tProp = Shader.PropertyToID("_T");
     private int curStateFrame, lerpFrame;
     private bool shouldLerp;
     private int frameOffset;
@@ -98,15 +98,19 @@ public class UnitAgent : MonoBehaviour
         shouldLerp = shouldLerp && animationTimer < 0.25f * clipLength;
         float t = shouldLerp ? 1 - math.saturate(animationTimer * speed / (0.25f * clipLength)) : 0;
 
-        mpb.SetFloat(frame1Prop, curStateFrame);
-        mpb.SetFloat(frame2Prop, lerpFrame);
-        mpb.SetFloat(tProp, t);
-
-        // meshRenderer.SetPropertyBlock(mpb);
+        InstancedAniManager.instance.SubmitInstance(
+            sharedMesh,
+            sharedMaterial,
+            new InstancedAniManager.InstanceData(
+                transform.localToWorldMatrix,
+                curStateFrame,
+                lerpFrame,
+                t
+            )
+        );
     }
 
     private Transform tr;
-    private MaterialPropertyBlock mpb;
     private AnimationStateMachine animStateMachine;
 
     private void Awake()
@@ -117,7 +121,6 @@ public class UnitAgent : MonoBehaviour
         UnitAgentData data = new(unitRadius, moveSpeed, pos);
         id = UnitRegister.instance.Register(data);
 
-        mpb = new();
         animStateMachine = new(AnimationState.Idle, OnStateStart, OnStateUpdate);
 
         animStateMachine.AddTransition(AnimationState.Idle, AnimationState.Walk, () => isMoving);
