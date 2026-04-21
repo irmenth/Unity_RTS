@@ -5,7 +5,6 @@ public enum AnimationState
 {
     Idle,
     Walk,
-    Attack,
 }
 
 public class AnimationStateMachine

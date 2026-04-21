@@ -50,14 +50,12 @@ public class UnitAgent : MonoBehaviour
     }
 
     private bool isMoving;
-    private bool isAttacking;
 
     private void UpdateAnimationState()
     {
         UnitAgentData data = UnitRegister.instance.unitRegistry[id];
 
-        if (math.lengthsq(data.velocity) < 1) isMoving = false;
-        else isMoving = true;
+        isMoving = math.lengthsq(data.velocity) >= 1;
     }
 
     private int curStateFrame, lerpFrame;
@@ -83,10 +81,6 @@ public class UnitAgent : MonoBehaviour
                 break;
             case AnimationState.Walk:
                 frameOffset = 90;
-                speed = 2.5f;
-                break;
-            case AnimationState.Attack:
-                frameOffset = 180;
                 speed = 2.5f;
                 break;
         }
@@ -125,10 +119,6 @@ public class UnitAgent : MonoBehaviour
 
         animStateMachine.AddTransition(AnimationState.Idle, AnimationState.Walk, () => isMoving);
         animStateMachine.AddTransition(AnimationState.Walk, AnimationState.Idle, () => !isMoving);
-        animStateMachine.AddTransition(AnimationState.Idle, AnimationState.Attack, () => isAttacking);
-        animStateMachine.AddTransition(AnimationState.Attack, AnimationState.Idle, () => !isAttacking);
-        animStateMachine.AddTransition(AnimationState.Attack, AnimationState.Walk, () => isMoving);
-        animStateMachine.AddTransition(AnimationState.Walk, AnimationState.Attack, () => isAttacking);
     }
 
     private void OnEnable()

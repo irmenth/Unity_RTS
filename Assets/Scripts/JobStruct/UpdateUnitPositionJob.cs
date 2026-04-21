@@ -9,8 +9,6 @@ public struct UpdateUnitPositionJob : IJobParallelFor
     private readonly int2 dgSize, ogSize;
     private readonly float ocRadius;
     private readonly float deltaTime;
-    private readonly float2 destnation;
-    private readonly float destRadius;
     private readonly bool arrived;
     private NativeArray<UnitAgentData> unitReg;
     [ReadOnly] private NativeArray<UnitAgentData> unitRegRO;
@@ -24,8 +22,6 @@ public struct UpdateUnitPositionJob : IJobParallelFor
         int2 ogSize,
         float ocRadius,
         float deltaTime,
-        float2 destnation,
-        float destRadius,
         bool arrived,
         NativeArray<UnitAgentData> unitReg,
         NativeArray<UnitAgentData> unitRegRO,
@@ -39,8 +35,6 @@ public struct UpdateUnitPositionJob : IJobParallelFor
         this.ogSize = ogSize;
         this.ocRadius = ocRadius;
         this.deltaTime = deltaTime;
-        this.destnation = destnation;
-        this.destRadius = destRadius;
         this.arrived = arrived;
         this.unitReg = unitReg;
         this.unitRegRO = unitRegRO;
@@ -53,8 +47,8 @@ public struct UpdateUnitPositionJob : IJobParallelFor
     public void Execute(int index)
     {
         UnitAgentData agentData = unitReg[index];
-
         Random rand = new((uint)index + 1);
+
         int steps = (int)math.ceil(agentData.radius / ocRadius);
         // unit 向内检测的步长，超过此步长的内部区域将跳过检测，数值应 >= 2
         int innerSteps = 2;
@@ -132,9 +126,9 @@ public struct UpdateUnitPositionJob : IJobParallelFor
                             float dist = math.length(diff);
                             float2 sepDir = dist < 1e-3f ? rand.NextFloat2Direction() : diff / dist;
                             float linearFactor = 1 - math.saturate((dist - totalRadius) / (maxDist - totalRadius));
-                            float overLap = 32 * agentData.curMaxSpeed * (1 - math.saturate(dist / overLapDist));
+                            float overLap = 64 * agentData.curMaxSpeed * (1 - math.saturate(dist / overLapDist));
                             float radiusFactor = math.clamp(otherData.radius / agentData.radius, 0.1f, 20f);
-                            float mag = (16 * agentData.curMaxSpeed * linearFactor + overLap) * radiusFactor;
+                            float mag = (32 * agentData.curMaxSpeed * linearFactor + overLap) * radiusFactor;
                             sepAccSum += mag * sepDir;
                             count++;
 

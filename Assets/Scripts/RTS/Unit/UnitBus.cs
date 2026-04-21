@@ -60,8 +60,6 @@ public class UnitBus : MonoBehaviour
             gc.flowField.ogSize,
             gc.flowField.ocRadius,
             Time.deltaTime,
-            destination,
-            destRadius,
             arrived,
             unitReg,
             unitRegRO,
