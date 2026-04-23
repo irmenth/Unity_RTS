@@ -7,21 +7,21 @@ using Unity.Mathematics;
 public struct UpdateArrivedJob : IJob
 {
     private NativeArray<bool> arrived;
-    [ReadOnly] NativeArray<UnitAgentData> unitReg;
+    [ReadOnly] private NativeArray<float2> positions;
     private readonly int regIndex;
     private readonly float2 destination;
     private readonly float destRadius;
 
     public UpdateArrivedJob(
         NativeArray<bool> arrived,
-        NativeArray<UnitAgentData> unitReg,
+        NativeArray<float2> positions,
         int regIndex,
         float2 destination,
         float destRadius
         )
     {
         this.arrived = arrived;
-        this.unitReg = unitReg;
+        this.positions = positions;
         this.regIndex = regIndex;
         this.destination = destination;
         this.destRadius = destRadius;
@@ -32,8 +32,7 @@ public struct UpdateArrivedJob : IJob
         int arrivedCount = 0;
         for (int i = 0; i < regIndex + 1; i++)
         {
-            float2 pos = unitReg[i].position;
-            if (math.lengthsq(pos - destination) < destRadius * destRadius) arrivedCount++;
+            if (math.lengthsq(positions[i] - destination) < destRadius * destRadius) arrivedCount++;
         }
 
         arrived[0] = arrivedCount / (regIndex + 1f) >= 0.8f;

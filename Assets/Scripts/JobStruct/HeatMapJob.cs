@@ -11,7 +11,8 @@ public struct HeatMapJob : IJob
     private NativeQueue<int> openList;
     private NativeArray<byte> inOpenList;
     private NativeArray<byte> closeList;
-    private NativeArray<DirectionCell> directionGrid;
+    [ReadOnly] private NativeArray<float> costMap;
+    private NativeArray<float> heatMap;
 
     public HeatMapJob(
         int2 size,
@@ -19,7 +20,8 @@ public struct HeatMapJob : IJob
         NativeQueue<int> openList,
         NativeArray<byte> inOpenList,
         NativeArray<byte> closeList,
-        NativeArray<DirectionCell> directionGrid
+        NativeArray<float> costMap,
+        NativeArray<float> heatMap
         )
     {
         this.size = size;
@@ -27,14 +29,8 @@ public struct HeatMapJob : IJob
         this.openList = openList;
         this.inOpenList = inOpenList;
         this.closeList = closeList;
-        this.directionGrid = directionGrid;
-    }
-
-    private void ChangeHeat(int index, float heat)
-    {
-        DirectionCell cell = directionGrid[index];
-        cell.heat = heat;
-        directionGrid[index] = cell;
+        this.costMap = costMap;
+        this.heatMap = heatMap;
     }
 
     public void Execute()
@@ -43,10 +39,10 @@ public struct HeatMapJob : IJob
 
         for (int i = 0; i < size.x * size.y; i++)
         {
-            ChangeHeat(i, float.PositiveInfinity);
+            heatMap[i] = float.PositiveInfinity;
         }
 
-        if (math.isinf(directionGrid[destination[0]].cost))
+        if (math.isinf(costMap[destination[0]]))
         {
             int step = 1;
             while (step < math.max(size.x, size.y))
@@ -62,7 +58,7 @@ public struct HeatMapJob : IJob
                         if (newPos.x < 0 || newPos.x >= size.x || newPos.y < 0 || newPos.y >= size.y) continue;
                         int newIndex = newPos.x * size.y + newPos.y;
 
-                        if (math.isfinite(directionGrid[newIndex].cost))
+                        if (math.isfinite(costMap[newIndex]))
                         {
                             destination[0] = newIndex;
                             canBreak = true;
@@ -77,7 +73,7 @@ public struct HeatMapJob : IJob
             }
         }
 
-        ChangeHeat(destination[0], 0f);
+        heatMap[destination[0]] = 0f;
         openList.Enqueue(destination[0]);
         inOpenList[destination[0]] = 1;
 
@@ -99,20 +95,20 @@ public struct HeatMapJob : IJob
 
                     int newIndex = nx * size.y + ny;
                     if (closeList[newIndex] == 1) continue;
-                    if (math.isinf(directionGrid[newIndex].cost))
+                    if (math.isinf(costMap[newIndex]))
                     {
                         closeList[newIndex] = 1;
                         continue;
                     }
 
-                    float cost = directionGrid[curIndex].cost;
+                    float cost = costMap[curIndex];
                     if (dx != 0 && dy != 0)
                         cost *= sqr2;
 
-                    float newHeat = directionGrid[curIndex].heat + cost;
-                    if (newHeat < directionGrid[newIndex].heat)
+                    float newHeat = heatMap[curIndex] + cost;
+                    if (newHeat < heatMap[newIndex])
                     {
-                        ChangeHeat(newIndex, newHeat);
+                        heatMap[newIndex] = newHeat;
                         if (inOpenList[newIndex] == 0)
                         {
                             openList.Enqueue(newIndex);

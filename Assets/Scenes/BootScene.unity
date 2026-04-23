@@ -306,6 +306,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7925f741efa339140a65e9c2d46b05ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  capacity: 10000
   indexer: -1
 --- !u!1 &1068222694
 GameObject:
@@ -489,8 +490,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e437b9ac83f53b41bd476576026e205, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  orangeUnitPrefab: {fileID: 1858363199291166399, guid: 9bc47982667b41244a2fb6d9d76b37a6, type: 3}
-  blueUnitPrefab: {fileID: 0}
 --- !u!1 &2064531886
 GameObject:
   m_ObjectHideFlags: 0

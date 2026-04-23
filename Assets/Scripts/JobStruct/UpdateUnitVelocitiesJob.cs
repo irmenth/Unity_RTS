@@ -3,26 +3,35 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 
+
 [BurstCompile]
-public struct UpdateUnitPositionJob : IJobParallelFor
+public struct UpdateUnitVelocitiesJob : IJobParallelFor
 {
     [ReadOnly] private NativeArray<float> radii;
     [ReadOnly] private NativeArray<int> ogIndices;
-    private NativeArray<float2> positions;
-    [ReadOnly] private NativeArray<float2> velocities;
+    [ReadOnly] private NativeArray<float2> dirAccs;
+    [ReadOnly] private NativeArray<float2> boidsAccs;
+    [ReadOnly] private NativeArray<float> dirAccRatios;
+    [ReadOnly] private NativeArray<float> curMaxSpeeds;
+    [ReadOnly] private NativeArray<float2> positions;
     [ReadOnly] private NativeParallelMultiHashMap<int, int> cellToObstacle;
     [ReadOnly] private NativeArray<ObstacleData> obstacleReg;
+    private NativeArray<float2> velocities;
     private readonly float ocRadius;
     private readonly int2 ogSize;
     private readonly float deltaTime;
 
-    public UpdateUnitPositionJob(
+    public UpdateUnitVelocitiesJob(
         NativeArray<float> radii,
         NativeArray<int> ogIndices,
+        NativeArray<float2> dirAccs,
+        NativeArray<float2> boidsAccs,
+        NativeArray<float> dirAccRatios,
+        NativeArray<float> curMaxSpeeds,
         NativeArray<float2> positions,
-        NativeArray<float2> velocities,
         NativeParallelMultiHashMap<int, int> cellToObstacle,
         NativeArray<ObstacleData> obstacleReg,
+        NativeArray<float2> velocities,
         float ocRadius,
         int2 ogSize,
         float deltaTime
@@ -30,10 +39,14 @@ public struct UpdateUnitPositionJob : IJobParallelFor
     {
         this.radii = radii;
         this.ogIndices = ogIndices;
+        this.dirAccs = dirAccs;
+        this.boidsAccs = boidsAccs;
+        this.dirAccRatios = dirAccRatios;
+        this.curMaxSpeeds = curMaxSpeeds;
         this.positions = positions;
-        this.velocities = velocities;
         this.cellToObstacle = cellToObstacle;
         this.obstacleReg = obstacleReg;
+        this.velocities = velocities;
         this.ocRadius = ocRadius;
         this.ogSize = ogSize;
         this.deltaTime = deltaTime;
@@ -41,7 +54,9 @@ public struct UpdateUnitPositionJob : IJobParallelFor
 
     public void Execute(int index)
     {
-        positions[index] += deltaTime * velocities[index];
+        velocities[index] += deltaTime * UsefulUtils.ClampMagnitude(boidsAccs[index] + dirAccRatios[index] * dirAccs[index], 2 * curMaxSpeeds[index]);
+        velocities[index] = math.lengthsq(velocities[index]) < 1e-9f ? float2.zero : velocities[index] * math.exp(-8f * deltaTime);
+        velocities[index] = UsefulUtils.ClampMagnitude(velocities[index], curMaxSpeeds[index]);
 
         int steps = (int)math.ceil(radii[index] / ocRadius);
         // unit 向内检测的步长，超过此步长的内部区域将跳过检测，数值应 >= 2
@@ -62,16 +77,18 @@ public struct UpdateUnitPositionJob : IJobParallelFor
                 {
                     do
                     {
-                        ObstacleData data = obstacleReg[id];
-                        switch (data.type)
-                        {
-                            case ObstacleType.Circle:
-                                positions[index] = UsefulUtils.IfIntersectWithCircleObstacle(data.circle, positions[index], radii[index]);
-                                break;
-                            case ObstacleType.Rectangle:
-                                positions[index] = UsefulUtils.IfIntersectWithRectObstacle(data.rect, positions[index], radii[index]);
-                                break;
-                        }
+                        // ObstacleData data = obstacleReg[id];
+                        // switch (data.type)
+                        // {
+                        //     case ObstacleType.Circle:
+                        //         if (UsefulUtils.HasCollideWithCircleObstacle(data.circle, positions[index], radii[index], out float2 negImpactDir))
+                        //             velocities[index] = UsefulUtils.ProjectOnLine(velocities[index], negImpactDir);
+                        //         break;
+                        //     case ObstacleType.Rectangle:
+                        //         if (UsefulUtils.HasCollideWithRectObstacle(data.rect, positions[index], radii[index], out negImpactDir))
+                        //             velocities[index] = UsefulUtils.ProjectOnLine(velocities[index], negImpactDir);
+                        //         break;
+                        // }
                     } while (cellToObstacle.TryGetNextValue(out id, ref it));
                 }
             }

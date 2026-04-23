@@ -7,29 +7,29 @@ using Unity.Mathematics;
 public struct FlowFieldJob : IJobParallelFor
 {
     private readonly int2 size;
-    [ReadOnly] private NativeArray<DirectionCell> directionGrid;
-    private NativeArray<float2> flowDir;
+    [ReadOnly] private NativeArray<float> heatMap;
+    private NativeArray<float2> dirMap;
 
-    public FlowFieldJob(int2 size, NativeArray<DirectionCell> directionGrid, NativeArray<float2> flowDir)
+    public FlowFieldJob(int2 size, NativeArray<float> heatMap, NativeArray<float2> dirMap)
     {
         this.size = size;
-        this.directionGrid = directionGrid;
-        this.flowDir = flowDir;
+        this.heatMap = heatMap;
+        this.dirMap = dirMap;
     }
 
     public void Execute(int index)
     {
-        flowDir[index] = float2.zero;
+        dirMap[index] = float2.zero;
 
-        if (math.isinf(directionGrid[index].heat))
+        if (math.isinf(heatMap[index]))
         {
-            flowDir[index] = new(float.PositiveInfinity, float.PositiveInfinity);
+            dirMap[index] = new(float.PositiveInfinity, float.PositiveInfinity);
             return;
         }
 
         int x = index / size.y, y = index % size.y;
 
-        float minHeat = directionGrid[index].heat;
+        float minHeat = heatMap[index];
         float2 baseDir = float2.zero;
         for (int dx = -1; dx <= 1; dx++)
         {
@@ -41,7 +41,7 @@ public struct FlowFieldJob : IJobParallelFor
                 if (nx < 0 || nx >= size.x || ny < 0 || ny >= size.y) continue;
 
                 int newIndex = nx * size.y + ny;
-                float newHeat = directionGrid[newIndex].heat;
+                float newHeat = heatMap[newIndex];
                 if (newHeat < minHeat)
                 {
                     minHeat = newHeat;
@@ -49,8 +49,8 @@ public struct FlowFieldJob : IJobParallelFor
                 }
             }
         }
-        if (math.abs(minHeat - directionGrid[index].heat) < 1e-3f) return;
+        if (math.abs(minHeat - heatMap[index]) < 1e-3f) return;
 
-        flowDir[index] = math.normalize(baseDir);
+        dirMap[index] = math.normalize(baseDir);
     }
 }

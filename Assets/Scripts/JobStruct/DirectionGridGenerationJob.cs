@@ -8,9 +8,9 @@ public struct DirectionGridGenerationJob : IJobParallelFor
 {
     private readonly int height;
     private readonly float radius, diameter;
-    private NativeArray<DirectionCell> directionGrid;
+    private NativeArray<Cell> directionGrid;
 
-    public DirectionGridGenerationJob(int height, float radius, NativeArray<DirectionCell> directionGrid)
+    public DirectionGridGenerationJob(int height, float radius, NativeArray<Cell> directionGrid)
     {
         this.height = height;
         this.radius = radius;
@@ -23,6 +23,6 @@ public struct DirectionGridGenerationJob : IJobParallelFor
         int x = index / height;
         int y = index % height;
 
-        directionGrid[index] = new DirectionCell(index, new float2(x, y) * diameter + new float2(radius));
+        directionGrid[index] = new Cell(index, new float2(x, y) * diameter + new float2(radius));
     }
 }

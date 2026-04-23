@@ -8,9 +8,9 @@ public struct ObstacleGridGenerationJob : IJobParallelFor
 {
     private readonly int height;
     private readonly float radius, diameter;
-    private NativeArray<ObstacleCell> obstacleGrid;
+    private NativeArray<Cell> obstacleGrid;
 
-    public ObstacleGridGenerationJob(int height, float radius, NativeArray<ObstacleCell> obstacleGrid)
+    public ObstacleGridGenerationJob(int height, float radius, NativeArray<Cell> obstacleGrid)
     {
         this.height = height;
         this.radius = radius;
@@ -23,6 +23,6 @@ public struct ObstacleGridGenerationJob : IJobParallelFor
         int x = index / height;
         int y = index % height;
 
-        obstacleGrid[index] = new ObstacleCell(index, new float2(x, y) * diameter + new float2(radius));
+        obstacleGrid[index] = new Cell(index, new float2(x, y) * diameter + new float2(radius));
     }
 }

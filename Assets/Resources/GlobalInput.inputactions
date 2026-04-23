@@ -16,15 +16,6 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "SetBlueDestination",
-                    "type": "Button",
-                    "id": "c4efbdff-d323-40c2-bc37-7cc8bade831c",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
                     "name": "GenerateOrangeUnit",
                     "type": "Button",
                     "id": "fac37e26-0a5e-4ffa-85ae-b24dd18d7da4",
@@ -136,17 +127,6 @@
                     "processors": "",
                     "groups": "",
                     "action": "GenerateBlueUnit",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "1ad7aa34-f15b-482f-beb8-ca2de099a8bb",
-                    "path": "<Mouse>/leftButton",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "SetBlueDestination",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

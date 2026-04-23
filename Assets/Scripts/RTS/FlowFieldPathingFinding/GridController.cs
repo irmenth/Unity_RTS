@@ -1,11 +1,12 @@
 using System.Diagnostics;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using Debug = UnityEngine.Debug;
 
 public class GridController : MonoBehaviour
 {
+    public static GridController instance;
+
     [Header("In Game")]
     [SerializeField] private GameObject unitPrefab;
     [SerializeField] private int2 directionGridSize;
@@ -37,17 +38,17 @@ public class GridController : MonoBehaviour
 #if UNITY_EDITOR
         if (flowField == null) return;
 
-        // // Draw direction grid
-        // Gizmos.color = Color.yellow;
-        // for (int x = 0; x < directionGridSize.x; x++)
-        // {
-        //     for (int y = 0; y < directionGridSize.y; y++)
-        //     {
-        //         int index = x * directionGridSize.y + y;
-        //         Vector3 cubeWS = new(flowField.directionGrid[index].worldPos.x, -directionCellRadius, flowField.directionGrid[index].worldPos.y);
-        //         Gizmos.DrawWireCube(cubeWS, directionCellRadius * 2f * Vector3.one);
-        //     }
-        // }
+        // Draw direction grid
+        Gizmos.color = Color.yellow;
+        for (int x = 0; x < directionGridSize.x; x++)
+        {
+            for (int y = 0; y < directionGridSize.y; y++)
+            {
+                int index = x * directionGridSize.y + y;
+                Vector3 cubeWS = new(flowField.directionGrid[index].worldPos.x, -directionCellRadius, flowField.directionGrid[index].worldPos.y);
+                Gizmos.DrawWireCube(cubeWS, directionCellRadius * 2f * Vector3.one);
+            }
+        }
 
         // // Draw obstacle grid
         // Gizmos.color = Color.green;
@@ -61,16 +62,16 @@ public class GridController : MonoBehaviour
         //     }
         // }
 
-        // // Draw Cost Field
-        // for (int x = 0; x < directionGridSize.x; x++)
-        // {
-        //     for (int y = 0; y < directionGridSize.y; y++)
-        //     {
-        //         int index = x * directionGridSize.y + y;
-        //         Vector3 labelWS = new(flowField.directionGrid[index].worldPos.x - flowField.dcRadius, 0, flowField.directionGrid[index].worldPos.y);
-        //         UnityEditor.Handles.Label(labelWS, flowField.directionGrid[index].cost.ToString("F1"));
-        //     }
-        // }
+        // Draw Cost Field
+        for (int x = 0; x < directionGridSize.x; x++)
+        {
+            for (int y = 0; y < directionGridSize.y; y++)
+            {
+                int index = x * directionGridSize.y + y;
+                Vector3 labelWS = new(flowField.directionGrid[index].worldPos.x - flowField.dcRadius, 0, flowField.directionGrid[index].worldPos.y);
+                UnityEditor.Handles.Label(labelWS, flowField.costMap[index].ToString("F1"));
+            }
+        }
 
         // // Draw Heat Map
         // for (int x = 0; x < directionGridSize.x; x++)
@@ -131,48 +132,46 @@ public class GridController : MonoBehaviour
 #endif
     }
 
-    private void SetDestination(InputAction.CallbackContext ctx)
-    {
-#if UNITY_EDITOR
-        Stopwatch sw = new();
-        sw.Start();
-#endif
+    //     private void SetDestination(InputAction.CallbackContext ctx)
+    //     {
+    // #if UNITY_EDITOR
+    //         Stopwatch sw = new();
+    //         sw.Start();
+    // #endif
 
-        Vector2 mousePos = Pointer.current.position.ReadValue();
-        Ray ray = Camera.main.ScreenPointToRay(mousePos);
-        if (Physics.Raycast(ray, out RaycastHit hit, 1000f, groundLayerMask))
-        {
-            float2 hitPoint = new(hit.point.x, hit.point.z);
-            int mouseGridIndex = flowField.WorldToDGIndex(hitPoint);
-            if (mouseGridIndex == -1) return;
+    //         Vector2 mousePos = Pointer.current.position.ReadValue();
+    //         Ray ray = Camera.main.ScreenPointToRay(mousePos);
+    //         if (Physics.Raycast(ray, out RaycastHit hit, 1000f, groundLayerMask))
+    //         {
+    //             float2 hitPoint = new(hit.point.x, hit.point.z);
+    //             int mouseGridIndex = flowField.WorldToDGIndex(hitPoint);
+    //             if (mouseGridIndex == -1) return;
 
-            float2 dest = flowField.GenerateHeatMapBurst(mouseGridIndex);
-            flowField.GenerateFlowFieldBurst();
+    //             float2 dest = flowField.GenerateHeatMapBurst(mouseGridIndex);
+    //             flowField.GenerateFlowFieldBurst();
 
-            EventBus.Publish(new MoveToEvent(UsefulUtils.Approximately(dest, new(-1, -1)) ? hitPoint : dest));
-        }
+    //             EventBus.Publish(new MoveToEvent(UsefulUtils.Approximately(dest, new(-1, -1)) ? hitPoint : dest));
+    //         }
 
-#if UNITY_EDITOR
-        sw.Stop();
-        Debug.Log($"[GridController] heat map & flow field generation: {sw.ElapsedMilliseconds}ms");
-#endif
-    }
+    // #if UNITY_EDITOR
+    //         sw.Stop();
+    //         Debug.Log($"[GridController] heat map & flow field generation: {sw.ElapsedMilliseconds}ms");
+    // #endif
+    //     }
 
-#if UNITY_EDITOR
-    // private MeshRenderer[,] dirIndicatorMeshRenderers;
-#endif
+    // #if UNITY_EDITOR
+    //     private MeshRenderer[,] dirIndicatorMeshRenderers;
+    // #endif
     private int impassibleLayer, roughLayer;
 
     private void Awake()
     {
+        if (instance != null) Destroy(instance.gameObject);
+        instance = this;
+
         impassibleLayer = UsefulUtils.GetLayer(impassibleLayerMask);
         roughLayer = UsefulUtils.GetLayer(roughLayerMask);
 
-        InputActionsManager.RTSSetOrangeDestination.started += SetDestination;
-    }
-
-    private void Start()
-    {
 #if UNITY_EDITOR
         Stopwatch sw = new();
         sw.Start();
@@ -185,25 +184,29 @@ public class GridController : MonoBehaviour
         sw.Stop();
         Debug.Log($"[GridController] cost field & obstacle map generation: {sw.ElapsedMilliseconds}ms");
 #endif
-#if UNITY_EDITOR
-        // dirIndicatorMeshRenderers = new MeshRenderer[directionGridSize.x, directionGridSize.y];
-
-        // for (int x = 0; x < directionGridSize.x; x++)
-        // {
-        //     for (int y = 0; y < directionGridSize.y; y++)
-        //     {
-        //         int index = x * directionGridSize.y + y;
-        //         Vector3 indictorWS = new(flowField.directionGrid[index].worldPos.x, 0.1f, flowField.directionGrid[index].worldPos.y);
-        //         dirIndicatorMeshRenderers[x, y] = Instantiate(dirIndictorPrefab, indictorWS, Quaternion.Euler(90, 0, 0)).GetComponent<MeshRenderer>();
-        //     }
-        // }
-#endif
     }
+
+    //     private void Start()
+    //     {
+    // #if UNITY_EDITOR
+    //         dirIndicatorMeshRenderers = new MeshRenderer[directionGridSize.x, directionGridSize.y];
+
+    //         // for (int x = 0; x < directionGridSize.x; x++)
+    //         // {
+    //         //     for (int y = 0; y < directionGridSize.y; y++)
+    //         //     {
+    //         //         int index = x * directionGridSize.y + y;
+    //         //         Vector3 indictorWS = new(flowField.directionGrid[index].worldPos.x, 0.1f, flowField.directionGrid[index].worldPos.y);
+    //         //         dirIndicatorMeshRenderers[x, y] = Instantiate(dirIndictorPrefab, indictorWS, Quaternion.Euler(90, 0, 0)).GetComponent<MeshRenderer>();
+    //         //     }
+    //         // }
+    // #endif
+    //     }
 
     private void OnDestroy()
     {
         flowField.Dispose();
 
-        InputActionsManager.RTSSetOrangeDestination.started -= SetDestination;
+        instance = null;
     }
 }

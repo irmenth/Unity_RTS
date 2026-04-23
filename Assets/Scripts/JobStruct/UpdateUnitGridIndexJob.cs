@@ -8,21 +8,27 @@ public struct UpdateUnitGridIndexJob : IJobParallelFor
 {
     private readonly int2 dgSize, ogSize;
     private readonly float dcDiameter, ocDiameter;
-    private NativeArray<UnitAgentData> unitReg;
+    [ReadOnly] private NativeArray<float2> positions;
+    private NativeArray<int> dgIndices;
+    private NativeArray<int> ogIndices;
 
     public UpdateUnitGridIndexJob(
         int2 dgSize,
         int2 ogSize,
         float dcDiameter,
         float ocDiameter,
-        NativeArray<UnitAgentData> unitReg
+        NativeArray<float2> positions,
+        NativeArray<int> dgIndices,
+        NativeArray<int> ogIndices
     )
     {
         this.dgSize = dgSize;
         this.ogSize = ogSize;
         this.dcDiameter = dcDiameter;
         this.ocDiameter = ocDiameter;
-        this.unitReg = unitReg;
+        this.positions = positions;
+        this.dgIndices = dgIndices;
+        this.ogIndices = ogIndices;
     }
 
     private readonly int WorldToDGIndex(float2 worldPos)
@@ -41,9 +47,7 @@ public struct UpdateUnitGridIndexJob : IJobParallelFor
 
     public void Execute(int index)
     {
-        UnitAgentData agentData = unitReg[index];
-        agentData.dgIndex = WorldToDGIndex(agentData.position);
-        agentData.ogIndex = WorldToOGIndex(agentData.position);
-        unitReg[index] = agentData;
+        dgIndices[index] = WorldToDGIndex(positions[index]);
+        ogIndices[index] = WorldToOGIndex(positions[index]);
     }
 }

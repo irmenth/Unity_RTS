@@ -9,19 +9,22 @@ public struct UpdateCellToUnitJob : IJobParallelFor
     private readonly int2 ogSize;
     private readonly float ocDiameter;
     private NativeParallelMultiHashMap<int, int>.ParallelWriter cellToUnit;
-    [ReadOnly] private NativeArray<UnitAgentData> unitReg;
+    private NativeArray<float2> positions;
+    private NativeArray<float> radii;
 
     public UpdateCellToUnitJob(
         int2 ogSize,
         float ocRadius,
         NativeParallelMultiHashMap<int, int>.ParallelWriter cellToUnit,
-        NativeArray<UnitAgentData> unitReg
+        NativeArray<float2> positions,
+        NativeArray<float> radii
         )
     {
         this.ogSize = ogSize;
         ocDiameter = ocRadius * 2;
         this.cellToUnit = cellToUnit;
-        this.unitReg = unitReg;
+        this.positions = positions;
+        this.radii = radii;
     }
 
     private readonly int2 WorldToOGPos(float2 worldPos)
@@ -33,9 +36,8 @@ public struct UpdateCellToUnitJob : IJobParallelFor
 
     public void Execute(int index)
     {
-        UnitAgentData agentData = unitReg[index];
-        float2 min = new(agentData.position.x - agentData.radius, agentData.position.y - agentData.radius);
-        float2 max = new(agentData.position.x + agentData.radius, agentData.position.y + agentData.radius);
+        float2 min = new(positions[index].x - radii[index], positions[index].y - radii[index]);
+        float2 max = new(positions[index].x + radii[index], positions[index].y + radii[index]);
         int2 minOg = WorldToOGPos(min);
         int2 maxOg = WorldToOGPos(max);
         for (int x = minOg.x; x <= maxOg.x; x++)

@@ -4,8 +4,6 @@ using UnityEngine;
 public class UnitAgent : MonoBehaviour
 {
     [Header("Animation")]
-    [SerializeField] private float moveSpeed;
-    [SerializeField] private float unitRadius;
     [SerializeField] private float clipLength;
     [SerializeField] private int clipFrame;
     [Header("Render")]
@@ -20,42 +18,11 @@ public class UnitAgent : MonoBehaviour
         id = evt.newID;
     }
 
-    Quaternion rot = Quaternion.identity;
-    float2 lastPos;
-    float lastPosUpdateTimer;
-
-    private void UpdateTransform()
-    {
-        UnitAgentData data = UnitRegister.instance.unitRegistry[id];
-        float2 pos = data.position;
-        float2 posToLast = pos - lastPos;
-        if (math.lengthsq(posToLast) > 1e-4f)
-        {
-            if (lastPosUpdateTimer > 0.1f)
-            {
-                // 0.8f 只是一个参数，控制判断阈值
-                if (math.lengthsq(posToLast) > 0.8f * 0.1f * data.curMaxSpeed) lastPos = pos;
-                lastPosUpdateTimer = 0;
-            }
-            else
-            {
-                lastPosUpdateTimer += Time.deltaTime;
-            }
-
-            Quaternion desiredRot = Quaternion.LookRotation(new(posToLast.x, 0, posToLast.y), Vector3.up);
-            rot = Quaternion.Slerp(tr.rotation, desiredRot, 4f * Time.deltaTime);
-        }
-
-        tr.SetPositionAndRotation(new(pos.x, tr.position.y, pos.y), rot);
-    }
-
     private bool isMoving;
 
     private void UpdateAnimationState()
     {
-        UnitAgentData data = UnitRegister.instance.unitRegistry[id];
-
-        isMoving = math.lengthsq(data.velocity) >= 1;
+        isMoving = math.lengthsq(UnitRegister.instance.velocities[id]) >= 1;
     }
 
     private int curStateFrame, lerpFrame;
@@ -104,25 +71,15 @@ public class UnitAgent : MonoBehaviour
         );
     }
 
-    private Transform tr;
     private AnimationStateMachine animStateMachine;
 
     private void Awake()
     {
-        tr = transform;
-        float2 pos = new(tr.position.x, tr.position.z);
-        lastPos = pos;
-        UnitAgentData data = new(unitRadius, moveSpeed, pos);
-        id = UnitRegister.instance.Register(data);
-
         animStateMachine = new(AnimationState.Idle, OnStateStart, OnStateUpdate);
 
         animStateMachine.AddTransition(AnimationState.Idle, AnimationState.Walk, () => isMoving);
         animStateMachine.AddTransition(AnimationState.Walk, AnimationState.Idle, () => !isMoving);
-    }
 
-    private void OnEnable()
-    {
         EventBus.Subscribe<UnitRemoveEvent>(ChangeID);
     }
 
@@ -134,16 +91,12 @@ public class UnitAgent : MonoBehaviour
         animationTimer += Time.deltaTime;
         stateChangeTimer += Time.deltaTime;
 
-        UpdateTransform();
         UpdateAnimationState();
         animStateMachine.Update();
     }
 
-    private void OnDisable()
+    private void OnDestroy()
     {
         EventBus.Unsubscribe<UnitRemoveEvent>(ChangeID);
-
-        if (UnitRegister.instance != null)
-            UnitRegister.instance.Unregister(id);
     }
 }

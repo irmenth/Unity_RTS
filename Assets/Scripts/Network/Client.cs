@@ -118,7 +118,7 @@ public class Client : MonoBehaviour
         Debug.Log($"[Client] connecting to {endpoint}...");
     }
 
-    public double smoothRTT;
+    [HideInInspector] public double smoothRTT;
     private float pingTimer;
     private const float PING_INTERVAL = 1f;
 
