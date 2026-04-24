@@ -9,7 +9,10 @@ public class UnitAgent : MonoBehaviour
     [Header("Render")]
     [SerializeField] private Material sharedMaterial;
     [SerializeField] private Mesh sharedMesh;
-
+    [SerializeField] private Material indicatorSharedMaterial;
+    [SerializeField] private Mesh indicatorSharedMesh;
+    [Header("Indicator")]
+    [SerializeField] private GameObject indicator;
     [HideInInspector] public int id;
 
     private void ChangeID(UnitRemoveEvent evt)
@@ -53,11 +56,13 @@ public class UnitAgent : MonoBehaviour
         }
     }
 
+    private float t;
+
     private void OnStateUpdate(AnimationState state)
     {
         curStateFrame = (int)math.round(math.frac(animationTimer * speed / clipLength) * clipFrame + frameOffset);
         shouldLerp = shouldLerp && animationTimer < 0.25f * clipLength;
-        float t = shouldLerp ? 1 - math.saturate(animationTimer * speed / (0.25f * clipLength)) : 0;
+        t = shouldLerp ? 1 - math.saturate(animationTimer * speed / (0.25f * clipLength)) : 0;
 
         InstancedAniManager.instance.SubmitInstance(
             sharedMesh,
@@ -75,6 +80,8 @@ public class UnitAgent : MonoBehaviour
 
     private void Awake()
     {
+        indicator.SetActive(false);
+
         animStateMachine = new(AnimationState.Idle, OnStateStart, OnStateUpdate);
 
         animStateMachine.AddTransition(AnimationState.Idle, AnimationState.Walk, () => isMoving);
@@ -85,6 +92,7 @@ public class UnitAgent : MonoBehaviour
 
     private float animationTimer;
     private float stateChangeTimer;
+    private bool lastEnableStatus;
 
     private void Update()
     {
@@ -93,6 +101,25 @@ public class UnitAgent : MonoBehaviour
 
         UpdateAnimationState();
         animStateMachine.Update();
+
+        indicator.SetActive(UnitRegister.instance.enableMap[id]);
+        if (lastEnableStatus != indicator.activeInHierarchy)
+        {
+            IndicatorBatchManager.instance.Clear(
+                indicatorSharedMesh,
+                indicatorSharedMaterial,
+                indicator.transform.localToWorldMatrix
+            );
+            lastEnableStatus = indicator.activeInHierarchy;
+        }
+        if (indicator.activeInHierarchy)
+        {
+            IndicatorBatchManager.instance.Submit(
+                indicatorSharedMesh,
+                indicatorSharedMaterial,
+                indicator.transform.localToWorldMatrix
+            );
+        }
     }
 
     private void OnDestroy()

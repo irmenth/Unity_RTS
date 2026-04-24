@@ -56,7 +56,10 @@ public class Server : MonoBehaviour
                 break;
             case CommandType.Move:
                 break;
-            case CommandType.Destroy:
+            case CommandType.Delete:
+                command = new DeleteCommand();
+                command.Deserialize(ref stream);
+                commandBuffer.Add(command);
                 break;
         }
     }

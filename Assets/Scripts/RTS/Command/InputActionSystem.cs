@@ -17,6 +17,16 @@ public class InputActionSystem : MonoBehaviour
         }
     }
 
+    private void SetDestination(InputAction.CallbackContext ctx)
+    {
+
+    }
+
+    private void Delete(InputAction.CallbackContext ctx)
+    {
+        Client.instance.SendInput(new DeleteCommand());
+    }
+
     private void Awake()
     {
         instance = this;
@@ -25,12 +35,16 @@ public class InputActionSystem : MonoBehaviour
     private void Start()
     {
         InputActionsManager.RTSGenerateOrangeUnit.started += GenerateOrangeUnit;
+        InputActionsManager.RTSSetDestination.started += SetDestination;
+        InputActionsManager.RTSDelete.started += Delete;
     }
 
     private void OnDestroy()
     {
-        instance = null;
-
         InputActionsManager.RTSGenerateOrangeUnit.started -= GenerateOrangeUnit;
+        InputActionsManager.RTSSetDestination.started -= SetDestination;
+        InputActionsManager.RTSDelete.started -= Delete;
+
+        instance = null;
     }
 }

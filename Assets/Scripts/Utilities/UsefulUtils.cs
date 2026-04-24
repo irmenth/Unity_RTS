@@ -25,6 +25,15 @@ public static class UsefulUtils
 
     public static bool Approximately(float3 a, float3 b, float eps = 1e-3f) => math.lengthsq(a - b) < eps * eps;
 
+    public static bool Approximately(Matrix4x4 a, Matrix4x4 b, float eps = 1e-3f)
+    {
+        for (int i = 0; i < 16; i++)
+        {
+            if (Mathf.Abs(a[i] - b[i]) > eps) return false;
+        }
+        return true;
+    }
+
     public static float2 ClampMagnitude(float2 v, float maxLength)
     {
         bool mask = math.length(v) <= maxLength;

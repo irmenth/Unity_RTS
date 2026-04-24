@@ -38,40 +38,40 @@ public class GridController : MonoBehaviour
 #if UNITY_EDITOR
         if (flowField == null) return;
 
-        // Draw direction grid
-        Gizmos.color = Color.yellow;
-        for (int x = 0; x < directionGridSize.x; x++)
-        {
-            for (int y = 0; y < directionGridSize.y; y++)
-            {
-                int index = x * directionGridSize.y + y;
-                Vector3 cubeWS = new(flowField.directionGrid[index].worldPos.x, -directionCellRadius, flowField.directionGrid[index].worldPos.y);
-                Gizmos.DrawWireCube(cubeWS, directionCellRadius * 2f * Vector3.one);
-            }
-        }
-
-        // // Draw obstacle grid
-        // Gizmos.color = Color.green;
-        // for (int x = 0; x < obstacleGridSize.x; x++)
+        // // Draw direction grid
+        // Gizmos.color = Color.yellow;
+        // for (int x = 0; x < directionGridSize.x; x++)
         // {
-        //     for (int y = 0; y < obstacleGridSize.y; y++)
+        //     for (int y = 0; y < directionGridSize.y; y++)
         //     {
-        //         int index = x * obstacleGridSize.y + y;
-        //         Vector3 cubeWS = new(flowField.obstacleGrid[index].worldPos.x, -obstacleCellRadius, flowField.obstacleGrid[index].worldPos.y);
-        //         Gizmos.DrawWireCube(cubeWS, obstacleCellRadius * 2f * Vector3.one);
+        //         int index = x * directionGridSize.y + y;
+        //         Vector3 cubeWS = new(flowField.directionGrid[index].worldPos.x, -directionCellRadius, flowField.directionGrid[index].worldPos.y);
+        //         Gizmos.DrawWireCube(cubeWS, directionCellRadius * 2f * Vector3.one);
         //     }
         // }
 
-        // Draw Cost Field
-        for (int x = 0; x < directionGridSize.x; x++)
+        // Draw obstacle grid
+        Gizmos.color = Color.green;
+        for (int x = 0; x < obstacleGridSize.x; x++)
         {
-            for (int y = 0; y < directionGridSize.y; y++)
+            for (int y = 0; y < obstacleGridSize.y; y++)
             {
-                int index = x * directionGridSize.y + y;
-                Vector3 labelWS = new(flowField.directionGrid[index].worldPos.x - flowField.dcRadius, 0, flowField.directionGrid[index].worldPos.y);
-                UnityEditor.Handles.Label(labelWS, flowField.costMap[index].ToString("F1"));
+                int index = x * obstacleGridSize.y + y;
+                Vector3 cubeWS = new(flowField.obstacleGrid[index].worldPos.x, -obstacleCellRadius, flowField.obstacleGrid[index].worldPos.y);
+                Gizmos.DrawWireCube(cubeWS, obstacleCellRadius * 2f * Vector3.one);
             }
         }
+
+        // // Draw Cost Field
+        // for (int x = 0; x < directionGridSize.x; x++)
+        // {
+        //     for (int y = 0; y < directionGridSize.y; y++)
+        //     {
+        //         int index = x * directionGridSize.y + y;
+        //         Vector3 labelWS = new(flowField.directionGrid[index].worldPos.x - flowField.dcRadius, 0, flowField.directionGrid[index].worldPos.y);
+        //         UnityEditor.Handles.Label(labelWS, flowField.costMap[index].ToString("F1"));
+        //     }
+        // }
 
         // // Draw Heat Map
         // for (int x = 0; x < directionGridSize.x; x++)
@@ -84,16 +84,16 @@ public class GridController : MonoBehaviour
         //     }
         // }
 
-        // // Draw Obstacle Count
-        // for (int x = 0; x < obstacleGridSize.x; x++)
-        // {
-        //     for (int y = 0; y < obstacleGridSize.y; y++)
-        //     {
-        //         int index = x * obstacleGridSize.y + y;
-        //         Vector3 labelWS = new(flowField.obstacleGrid[index].worldPos.x, 0, flowField.obstacleGrid[index].worldPos.y);
-        //         UnityEditor.Handles.Label(labelWS, flowField.cellToObstacle.CountValuesForKey(index).ToString());
-        //     }
-        // }
+        // Draw Obstacle Count
+        for (int x = 0; x < obstacleGridSize.x; x++)
+        {
+            for (int y = 0; y < obstacleGridSize.y; y++)
+            {
+                int index = x * obstacleGridSize.y + y;
+                Vector3 labelWS = new(flowField.obstacleGrid[index].worldPos.x, 0, flowField.obstacleGrid[index].worldPos.y);
+                UnityEditor.Handles.Label(labelWS, flowField.cellToObstacle.CountValuesForKey(index).ToString());
+            }
+        }
 
         // // Draw Flow Field
         // for (int x = 0; x < directionGridSize.x; x++)
@@ -171,7 +171,10 @@ public class GridController : MonoBehaviour
 
         impassibleLayer = UsefulUtils.GetLayer(impassibleLayerMask);
         roughLayer = UsefulUtils.GetLayer(roughLayerMask);
+    }
 
+    private void Start()
+    {
 #if UNITY_EDITOR
         Stopwatch sw = new();
         sw.Start();
@@ -184,24 +187,21 @@ public class GridController : MonoBehaviour
         sw.Stop();
         Debug.Log($"[GridController] cost field & obstacle map generation: {sw.ElapsedMilliseconds}ms");
 #endif
+
+        // #if UNITY_EDITOR
+        //         dirIndicatorMeshRenderers = new MeshRenderer[directionGridSize.x, directionGridSize.y];
+
+        //         for (int x = 0; x < directionGridSize.x; x++)
+        //         {
+        //             for (int y = 0; y < directionGridSize.y; y++)
+        //             {
+        //                 int index = x * directionGridSize.y + y;
+        //                 Vector3 indictorWS = new(flowField.directionGrid[index].worldPos.x, 0.1f, flowField.directionGrid[index].worldPos.y);
+        //                 dirIndicatorMeshRenderers[x, y] = Instantiate(dirIndictorPrefab, indictorWS, Quaternion.Euler(90, 0, 0)).GetComponent<MeshRenderer>();
+        //             }
+        //         }
+        // #endif
     }
-
-    //     private void Start()
-    //     {
-    // #if UNITY_EDITOR
-    //         dirIndicatorMeshRenderers = new MeshRenderer[directionGridSize.x, directionGridSize.y];
-
-    //         // for (int x = 0; x < directionGridSize.x; x++)
-    //         // {
-    //         //     for (int y = 0; y < directionGridSize.y; y++)
-    //         //     {
-    //         //         int index = x * directionGridSize.y + y;
-    //         //         Vector3 indictorWS = new(flowField.directionGrid[index].worldPos.x, 0.1f, flowField.directionGrid[index].worldPos.y);
-    //         //         dirIndicatorMeshRenderers[x, y] = Instantiate(dirIndictorPrefab, indictorWS, Quaternion.Euler(90, 0, 0)).GetComponent<MeshRenderer>();
-    //         //     }
-    //         // }
-    // #endif
-    //     }
 
     private void OnDestroy()
     {

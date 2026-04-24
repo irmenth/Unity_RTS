@@ -107,7 +107,7 @@ public class FlowField
                 int index = x * dgSize.y + y;
                 costMap[index] = 1;
                 Vector3 detectPos = new(directionGrid[index].worldPos.x, -10, directionGrid[index].worldPos.y);
-                int hitCount = Physics.OverlapBoxNonAlloc(detectPos, new Vector3(dcRadius, 20, dcRadius), dgBoxHitBuffter, Quaternion.identity, costLayerMask);
+                int hitCount = Physics.OverlapBoxNonAlloc(detectPos, new(dcRadius, 20, dcRadius), dgBoxHitBuffter, Quaternion.identity, costLayerMask);
 
                 bool hasRecordRough = false, hasRecordImpassible = false;
                 for (int i = 0; i < hitCount; i++)
@@ -215,7 +215,7 @@ public class FlowField
             {
                 int index = x * ogSize.y + y;
                 Vector3 detectPos = new(obstacleGrid[index].worldPos.x, -10, obstacleGrid[index].worldPos.y);
-                int hitCount = Physics.OverlapBoxNonAlloc(detectPos, new Vector3(ocRadius, 20, ocRadius), ogBoxHitBuffer, Quaternion.identity, 1 << impassibleLayer);
+                int hitCount = Physics.OverlapBoxNonAlloc(detectPos, new(ocRadius, 20, ocRadius), ogBoxHitBuffer, Quaternion.identity, 1 << impassibleLayer);
 
                 for (int i = 0; i < hitCount; i++)
                 {
@@ -225,8 +225,6 @@ public class FlowField
                         colliderBuffer[collider] = collider.GetComponent<ObstacleAgent>().id;
 
                     int id = colliderBuffer[collider];
-
-                    if (id > ObstacleRegister.instance.indexer) Debug.Log($"{collider.gameObject}::{id}");
 
                     cellToObstacle.Add(index, id);
                 }

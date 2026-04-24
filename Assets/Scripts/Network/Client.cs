@@ -32,7 +32,10 @@ public class Client : MonoBehaviour
                     break;
                 case CommandType.Move:
                     break;
-                case CommandType.Destroy:
+                case CommandType.Delete:
+                    command = new DeleteCommand();
+                    command.Deserialize(ref stream);
+                    COMMANDS.Add(command);
                     break;
             }
         }

@@ -22,6 +22,9 @@ public class UnitRegister : MonoBehaviour
     public NativeArray<int> dgIndices;
     public NativeArray<int> ogIndices;
     public TransformAccessArray unitTrans;
+    public NativeArray<bool> enableMap;
+    public NativeArray<int> readyDelete;
+    public NativeArray<int> readyDeleteLength;
 
     [HideInInspector] public int indexer = -1;
 
@@ -39,7 +42,17 @@ public class UnitRegister : MonoBehaviour
         velocities[index] = velocities[indexer];
         dgIndices[index] = dgIndices[indexer];
         ogIndices[index] = ogIndices[indexer];
-        unitTrans.RemoveAtSwapBack(index);
+        // unitTrans.RemoveAtSwapBack(index);
+        enableMap[index] = enableMap[indexer];
+
+        for (int i = 0; i < readyDeleteLength[0]; i++)
+        {
+            if (readyDelete[i] == indexer)
+            {
+                readyDelete[i] = index;
+                break;
+            }
+        }
     }
 
     public int Register(Transform trans, float radius, float speed, float2 position)
@@ -58,6 +71,7 @@ public class UnitRegister : MonoBehaviour
         dgIndices[indexer] = -1;
         ogIndices[indexer] = -1;
         unitTrans.Add(trans);
+        enableMap[indexer] = false;
         return indexer;
     }
 
@@ -65,7 +79,7 @@ public class UnitRegister : MonoBehaviour
     {
         if (index > indexer)
         {
-            Debug.LogError("Invalid ID");
+            Debug.LogError("[UnitRegister] remove: invalid ID");
             return;
         }
         Remove(index);
@@ -90,6 +104,9 @@ public class UnitRegister : MonoBehaviour
         dgIndices = new(capacity, Allocator.Persistent);
         ogIndices = new(capacity, Allocator.Persistent);
         unitTrans = new(capacity);
+        enableMap = new(capacity, Allocator.Persistent);
+        readyDelete = new(capacity, Allocator.Persistent);
+        readyDeleteLength = new(1, Allocator.Persistent);
     }
 
     private void OnDestroy()
@@ -107,6 +124,9 @@ public class UnitRegister : MonoBehaviour
         dgIndices.Dispose();
         ogIndices.Dispose();
         unitTrans.Dispose();
+        enableMap.Dispose();
+        readyDelete.Dispose();
+        readyDeleteLength.Dispose();
 
         instance = null;
     }

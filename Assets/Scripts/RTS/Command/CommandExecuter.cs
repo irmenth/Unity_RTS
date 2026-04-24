@@ -11,6 +11,13 @@ public class CommandExecuter : MonoBehaviour
         UnitBus.instance.InstantiateUnit(cmd);
     }
 
+    private void Delete(DeleteCommand cmd)
+    {
+        if (!UnitBus.instance) return;
+
+        UnitBus.instance.Delete(cmd);
+    }
+
     private void OnCommandsReady(CommandsReadyEvent e)
     {
         foreach (var cmd in e.commands)
@@ -22,7 +29,8 @@ public class CommandExecuter : MonoBehaviour
                     break;
                 case CommandType.Move:
                     break;
-                case CommandType.Destroy:
+                case CommandType.Delete:
+                    Delete(cmd as DeleteCommand);
                     break;
             }
         }

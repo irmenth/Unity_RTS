@@ -7,7 +7,7 @@
             "id": "2b70213e-57af-4daf-8650-57f9edde719d",
             "actions": [
                 {
-                    "name": "SetOrangeDestination",
+                    "name": "SetDestination",
                     "type": "Button",
                     "id": "ad2ed450-1b59-4846-9b4d-90216f7ba381",
                     "expectedControlType": "",
@@ -50,6 +50,24 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "BoxSelect",
+                    "type": "Button",
+                    "id": "4a8a77a3-a996-44de-855a-63b4c1447633",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Delete",
+                    "type": "Button",
+                    "id": "6f6dd5f5-a1d8-4ea7-812c-d14dc484db40",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -60,7 +78,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "SetOrangeDestination",
+                    "action": "SetDestination",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -127,6 +145,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "GenerateBlueUnit",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "cbdf49e7-b934-4ced-b209-e38444bc00cf",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "BoxSelect",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "468f90fb-2114-4e71-9ff4-423241c94e23",
+                    "path": "<Keyboard>/d",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Delete",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

@@ -6,6 +6,7 @@ using Unity.Mathematics;
 [BurstCompile]
 public struct UpdateUnitDirAccJob : IJobParallelFor
 {
+    [ReadOnly] private NativeArray<bool> enableMap;
     [ReadOnly] private NativeArray<float2> dirMap;
     [ReadOnly] private NativeArray<int> dgIndices;
     private NativeArray<float2> dirAccs;
@@ -13,6 +14,7 @@ public struct UpdateUnitDirAccJob : IJobParallelFor
     private readonly int2 dgSize;
 
     public UpdateUnitDirAccJob(
+        NativeArray<bool> enableMap,
         NativeArray<float2> dirMap,
         NativeArray<int> dgIndices,
         NativeArray<float2> dirAccs,
@@ -20,6 +22,7 @@ public struct UpdateUnitDirAccJob : IJobParallelFor
         int2 dgSize
     )
     {
+        this.enableMap = enableMap;
         this.dirMap = dirMap;
         this.dgIndices = dgIndices;
         this.dirAccs = dirAccs;
@@ -29,6 +32,8 @@ public struct UpdateUnitDirAccJob : IJobParallelFor
 
     public void Execute(int index)
     {
+        if (!enableMap[index]) return;
+
         int2 dgPos = new(dgIndices[index] / dgSize.y, dgIndices[index] % dgSize.y);
         float2 baseDir = dirMap[dgIndices[index]];
         bool baseInf = math.isinf(baseDir.x) && math.isinf(baseDir.y);

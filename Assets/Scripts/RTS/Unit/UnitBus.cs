@@ -35,10 +35,10 @@ public class UnitBus : MonoBehaviour
     private void UpdateUnitGridIndexBurst()
     {
         UpdateUnitGridIndexJob job = new(
-            flowField.dgSize,
-            flowField.ogSize,
-            flowField.dcDiameter,
-            flowField.ocDiameter,
+            FF.dgSize,
+            FF.ogSize,
+            FF.dcDiameter,
+            FF.ocDiameter,
             UnitRegister.instance.positions,
             UnitRegister.instance.dgIndices,
             UnitRegister.instance.ogIndices
@@ -48,11 +48,11 @@ public class UnitBus : MonoBehaviour
 
     private void UpdateCellToUnitBurst()
     {
-        flowField.cellToUnit.Clear();
+        FF.cellToUnit.Clear();
         UpdateCellToUnitJob job = new(
-            flowField.ogSize,
-            flowField.ocRadius,
-            flowField.cellToUnit.AsParallelWriter(),
+            FF.ogSize,
+            FF.ocRadius,
+            FF.cellToUnit.AsParallelWriter(),
             UnitRegister.instance.positions,
             UnitRegister.instance.radii
             );
@@ -62,7 +62,7 @@ public class UnitBus : MonoBehaviour
     private void UpdateUnitCurMaxSpeedBurst()
     {
         UpdateUnitCurMaxSpeed job = new(
-            flowField.costMap,
+            FF.costMap,
             UnitRegister.instance.dgIndices,
             UnitRegister.instance.speeds,
             UnitRegister.instance.curMaxSpeeds
@@ -73,11 +73,12 @@ public class UnitBus : MonoBehaviour
     private void UpdateUnitDirAccBurst(NativeArray<float2> dirMap)
     {
         UpdateUnitDirAccJob job = new(
+            UnitRegister.instance.enableMap,
             dirMap,
             UnitRegister.instance.dgIndices,
             UnitRegister.instance.dirAccs,
             UnitRegister.instance.curMaxSpeeds,
-            flowField.dgSize
+            FF.dgSize
             );
         job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
     }
@@ -90,9 +91,9 @@ public class UnitBus : MonoBehaviour
             UnitRegister.instance.ogIndices,
             UnitRegister.instance.curMaxSpeeds,
             UnitRegister.instance.dirAccs,
-            flowField.ogSize,
-            flowField.ocRadius,
-            flowField.cellToUnit,
+            FF.ogSize,
+            FF.ocRadius,
+            FF.cellToUnit,
             UnitRegister.instance.boidsAccs,
             UnitRegister.instance.dirAccRatios
         );
@@ -109,11 +110,11 @@ public class UnitBus : MonoBehaviour
             UnitRegister.instance.dirAccRatios,
             UnitRegister.instance.curMaxSpeeds,
             UnitRegister.instance.positions,
-            flowField.cellToObstacle,
+            FF.cellToObstacle,
             ObstacleRegister.instance.obstacleRegistry,
             UnitRegister.instance.velocities,
-            flowField.ocRadius,
-            flowField.ogSize,
+            FF.ocRadius,
+            FF.ogSize,
             Time.deltaTime
         );
         job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
@@ -126,10 +127,10 @@ public class UnitBus : MonoBehaviour
             UnitRegister.instance.ogIndices,
             UnitRegister.instance.positions,
             UnitRegister.instance.velocities,
-            flowField.cellToObstacle,
+            FF.cellToObstacle,
             ObstacleRegister.instance.obstacleRegistry,
-            flowField.ocRadius,
-            flowField.ogSize,
+            FF.ocRadius,
+            FF.ogSize,
             Time.deltaTime
         );
         job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
@@ -199,6 +200,24 @@ public class UnitBus : MonoBehaviour
         }
     }
 
+    public void Delete(DeleteCommand cmd)
+    {
+        UnitRegister.instance.readyDeleteLength[0] = 0;
+
+        DeleteJob job = new(
+            UnitRegister.instance.enableMap,
+            UnitRegister.instance.readyDelete,
+            UnitRegister.instance.readyDeleteLength
+        );
+        job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
+
+        for (int i = 0; i < UnitRegister.instance.readyDeleteLength[0]; i++)
+        {
+            Destroy(UnitRegister.instance.unitTrans[UnitRegister.instance.readyDelete[i]].gameObject);
+            UnitRegister.instance.Unregister(UnitRegister.instance.readyDelete[i]);
+        }
+    }
+
     private void Awake()
     {
         if (instance != null) Destroy(instance.gameObject);
@@ -207,12 +226,7 @@ public class UnitBus : MonoBehaviour
         EventBus.Subscribe<MoveToEvent>(SetDestination);
     }
 
-    private FlowField flowField;
-
-    private void Start()
-    {
-        flowField = GridController.instance.flowField;
-    }
+    private FlowField FF => GridController.instance.flowField;
 
     private void Update()
     {
@@ -226,7 +240,7 @@ public class UnitBus : MonoBehaviour
         // UpdateUnitDirAccBurst();
         UpdateUnitBoidsAccBurst();
         UpdateUnitVelocitiesBurst();
-        // UpdateUnitPositionBurst();
+        UpdateUnitPositionBurst();
 
         UpdateUnitTransformBurst();
     }
