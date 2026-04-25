@@ -31,6 +31,9 @@ public class Client : MonoBehaviour
                     COMMANDS.Add(command);
                     break;
                 case CommandType.Move:
+                    command = new MoveCommand();
+                    command.Deserialize(ref stream);
+                    COMMANDS.Add(command);
                     break;
                 case CommandType.Delete:
                     command = new DeleteCommand();

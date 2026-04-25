@@ -55,8 +55,8 @@ public struct UpdateUnitVelocitiesJob : IJobParallelFor
     public void Execute(int index)
     {
         velocities[index] += deltaTime * UsefulUtils.ClampMagnitude(boidsAccs[index] + dirAccRatios[index] * dirAccs[index], 2 * curMaxSpeeds[index]);
-        velocities[index] = math.lengthsq(velocities[index]) < 1e-9f ? float2.zero : velocities[index] * math.exp(-8f * deltaTime);
         velocities[index] = UsefulUtils.ClampMagnitude(velocities[index], curMaxSpeeds[index]);
+        velocities[index] = math.lengthsq(velocities[index]) < 1e-9f ? float2.zero : velocities[index] * math.exp(-8f * deltaTime);
 
         int steps = (int)math.ceil(radii[index] / ocRadius);
         // unit 向内检测的步长，超过此步长的内部区域将跳过检测，数值应 >= 2
@@ -77,18 +77,18 @@ public struct UpdateUnitVelocitiesJob : IJobParallelFor
                 {
                     do
                     {
-                        // ObstacleData data = obstacleReg[id];
-                        // switch (data.type)
-                        // {
-                        //     case ObstacleType.Circle:
-                        //         if (UsefulUtils.HasCollideWithCircleObstacle(data.circle, positions[index], radii[index], out float2 negImpactDir))
-                        //             velocities[index] = UsefulUtils.ProjectOnLine(velocities[index], negImpactDir);
-                        //         break;
-                        //     case ObstacleType.Rectangle:
-                        //         if (UsefulUtils.HasCollideWithRectObstacle(data.rect, positions[index], radii[index], out negImpactDir))
-                        //             velocities[index] = UsefulUtils.ProjectOnLine(velocities[index], negImpactDir);
-                        //         break;
-                        // }
+                        ObstacleData data = obstacleReg[id];
+                        switch (data.type)
+                        {
+                            case ObstacleType.Circle:
+                                if (UsefulUtils.HasCollideWithCircleObstacle(data.circle, positions[index], radii[index], out float2 negImpactDir))
+                                    velocities[index] = UsefulUtils.ProjectOnLine(velocities[index], negImpactDir);
+                                break;
+                            case ObstacleType.Rectangle:
+                                if (UsefulUtils.HasCollideWithRectObstacle(data.rect, positions[index], radii[index], out negImpactDir))
+                                    velocities[index] = UsefulUtils.ProjectOnLine(velocities[index], negImpactDir);
+                                break;
+                        }
                     } while (cellToObstacle.TryGetNextValue(out id, ref it));
                 }
             }

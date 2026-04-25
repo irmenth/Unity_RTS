@@ -79,9 +79,9 @@ public struct UpdateUnitBoidsAccJob : IJobParallelFor
                             float dist = math.length(diff);
                             float2 sepDir = dist < 1e-3f ? rand.NextFloat2Direction() : diff / dist;
                             float linearFactor = 1 - math.saturate((dist - totalRadius) / (maxDist - totalRadius));
-                            float overLap = 16 * curMaxSpeeds[index] * (1 - math.saturate(dist / overLapDist));
+                            float overLap = 8 * curMaxSpeeds[index] * (1 - math.saturate(dist / overLapDist));
                             float radiusFactor = math.clamp(radii[otherIndex] / radii[index], 0.1f, 20f);
-                            float mag = (8 * curMaxSpeeds[index] * linearFactor + overLap) * radiusFactor;
+                            float mag = (4 * curMaxSpeeds[index] * linearFactor + overLap) * radiusFactor;
                             sepAccSum += mag * sepDir;
                             count++;
 

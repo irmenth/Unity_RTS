@@ -56,6 +56,9 @@ public class BoxSelector : MonoBehaviour
     {
         if (canStart)
         {
+            IndicatorBatchManager.instance.Clear();
+            UnitRegister.instance.selectedList.Clear();
+
             Vector2 mousePos = Pointer.current.position.ReadValue();
             Vector2 curPos = mousePos - screenSize / 2;
             Vector2 size = curPos - startPos;
@@ -69,12 +72,19 @@ public class BoxSelector : MonoBehaviour
             float2 ld = new(math.min(startPosWS.x, curPosWS.x), math.min(startPosWS.y, curPosWS.y));
             float2 ru = new(math.max(startPosWS.x, curPosWS.x), math.max(startPosWS.y, curPosWS.y));
             DragBoxJob job = new(
-                UnitRegister.instance.enableMap,
+                UnitRegister.instance.selectedMap,
                 UnitRegister.instance.positions,
                 ld,
                 ru
             );
             job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
+            GetSelectedListJob job2 = new(
+                UnitRegister.instance.selectedMap,
+                UnitRegister.instance.selectedList,
+                UnitRegister.instance.indexer + 1
+            );
+            job2.Schedule().Complete();
+            UnitRegister.instance.selectedList.Sort();
 
             rect.anchoredPosition = startPos + size / 2;
             rect.sizeDelta = new(Mathf.Abs(size.x), Mathf.Abs(size.y));

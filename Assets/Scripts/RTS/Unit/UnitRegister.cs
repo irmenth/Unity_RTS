@@ -7,7 +7,7 @@ public class UnitRegister : MonoBehaviour
 {
     public static UnitRegister instance;
 
-    [SerializeField] private int capacity = (int)1e4;
+    [SerializeField] private int capacity = (int)1.5e4;
 
     public NativeArray<float> radii;
     public NativeArray<float> speeds;
@@ -19,12 +19,13 @@ public class UnitRegister : MonoBehaviour
     public NativeArray<float2> boidsAccs;
     public NativeArray<float> dirAccRatios;
     public NativeArray<float2> velocities;
+    public NativeArray<bool> arrived;
     public NativeArray<int> dgIndices;
     public NativeArray<int> ogIndices;
     public TransformAccessArray unitTrans;
-    public NativeArray<bool> enableMap;
-    public NativeArray<int> readyDelete;
-    public NativeArray<int> readyDeleteLength;
+    public NativeArray<bool> selectedMap;
+    public NativeList<int> selectedList;
+    public NativeArray<ulong> dirMapIndices;
 
     [HideInInspector] public int indexer = -1;
 
@@ -40,19 +41,12 @@ public class UnitRegister : MonoBehaviour
         boidsAccs[index] = boidsAccs[indexer];
         dirAccRatios[index] = dirAccRatios[indexer];
         velocities[index] = velocities[indexer];
+        arrived[index] = arrived[indexer];
         dgIndices[index] = dgIndices[indexer];
         ogIndices[index] = ogIndices[indexer];
-        // unitTrans.RemoveAtSwapBack(index);
-        enableMap[index] = enableMap[indexer];
-
-        for (int i = 0; i < readyDeleteLength[0]; i++)
-        {
-            if (readyDelete[i] == indexer)
-            {
-                readyDelete[i] = index;
-                break;
-            }
-        }
+        unitTrans.RemoveAtSwapBack(index);
+        selectedMap[index] = selectedMap[indexer];
+        dirMapIndices[index] = dirMapIndices[indexer];
     }
 
     public int Register(Transform trans, float radius, float speed, float2 position)
@@ -68,10 +62,12 @@ public class UnitRegister : MonoBehaviour
         boidsAccs[indexer] = float2.zero;
         dirAccRatios[indexer] = 0.5f;
         velocities[indexer] = float2.zero;
+        arrived[indexer] = false;
         dgIndices[indexer] = -1;
         ogIndices[indexer] = -1;
         unitTrans.Add(trans);
-        enableMap[indexer] = false;
+        selectedMap[indexer] = false;
+        dirMapIndices[indexer] = ulong.MaxValue;
         return indexer;
     }
 
@@ -101,12 +97,13 @@ public class UnitRegister : MonoBehaviour
         boidsAccs = new(capacity, Allocator.Persistent);
         dirAccRatios = new(capacity, Allocator.Persistent);
         velocities = new(capacity, Allocator.Persistent);
+        arrived = new(capacity, Allocator.Persistent);
         dgIndices = new(capacity, Allocator.Persistent);
         ogIndices = new(capacity, Allocator.Persistent);
         unitTrans = new(capacity);
-        enableMap = new(capacity, Allocator.Persistent);
-        readyDelete = new(capacity, Allocator.Persistent);
-        readyDeleteLength = new(1, Allocator.Persistent);
+        selectedMap = new(capacity, Allocator.Persistent);
+        selectedList = new(capacity, Allocator.Persistent);
+        dirMapIndices = new(capacity, Allocator.Persistent);
     }
 
     private void OnDestroy()
@@ -121,12 +118,13 @@ public class UnitRegister : MonoBehaviour
         boidsAccs.Dispose();
         dirAccRatios.Dispose();
         velocities.Dispose();
+        arrived.Dispose();
         dgIndices.Dispose();
         ogIndices.Dispose();
         unitTrans.Dispose();
-        enableMap.Dispose();
-        readyDelete.Dispose();
-        readyDeleteLength.Dispose();
+        selectedMap.Dispose();
+        selectedList.Dispose();
+        dirMapIndices.Dispose();
 
         instance = null;
     }

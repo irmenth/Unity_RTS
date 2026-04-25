@@ -22,10 +22,12 @@ public class UnitAgent : MonoBehaviour
     }
 
     private bool isMoving;
+    private Vector3 lastPos;
 
     private void UpdateAnimationState()
     {
-        isMoving = math.lengthsq(UnitRegister.instance.velocities[id]) >= 1;
+        isMoving = Vector3.SqrMagnitude(lastPos - transform.position) >= 4 * Time.deltaTime * Time.deltaTime;
+        lastPos = transform.position;
     }
 
     private int curStateFrame, lerpFrame;
@@ -81,18 +83,22 @@ public class UnitAgent : MonoBehaviour
     private void Awake()
     {
         indicator.SetActive(false);
+        lastPos = transform.position;
 
         animStateMachine = new(AnimationState.Idle, OnStateStart, OnStateUpdate);
 
         animStateMachine.AddTransition(AnimationState.Idle, AnimationState.Walk, () => isMoving);
         animStateMachine.AddTransition(AnimationState.Walk, AnimationState.Idle, () => !isMoving);
 
+    }
+
+    private void OnEnable()
+    {
         EventBus.Subscribe<UnitRemoveEvent>(ChangeID);
     }
 
     private float animationTimer;
     private float stateChangeTimer;
-    private bool lastEnableStatus;
 
     private void Update()
     {
@@ -102,16 +108,7 @@ public class UnitAgent : MonoBehaviour
         UpdateAnimationState();
         animStateMachine.Update();
 
-        indicator.SetActive(UnitRegister.instance.enableMap[id]);
-        if (lastEnableStatus != indicator.activeInHierarchy)
-        {
-            IndicatorBatchManager.instance.Clear(
-                indicatorSharedMesh,
-                indicatorSharedMaterial,
-                indicator.transform.localToWorldMatrix
-            );
-            lastEnableStatus = indicator.activeInHierarchy;
-        }
+        indicator.SetActive(UnitRegister.instance.selectedMap[id]);
         if (indicator.activeInHierarchy)
         {
             IndicatorBatchManager.instance.Submit(
@@ -122,7 +119,7 @@ public class UnitAgent : MonoBehaviour
         }
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
         EventBus.Unsubscribe<UnitRemoveEvent>(ChangeID);
     }

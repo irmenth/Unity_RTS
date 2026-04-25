@@ -55,20 +55,20 @@ public class InstancedAniManager : MonoBehaviour
     {
         if (Time.frameCount != lastClearedFrame)
         {
-            ClearBatches();
+            Clear();
             lastClearedFrame = Time.frameCount;
         }
 
         var key = (mesh, material);
         if (!batches.TryGetValue(key, out var batch))
         {
-            batch = new RenderBatch(mesh, material, (int)1e4f);
+            batch = new RenderBatch(mesh, material, (int)1.5e4f);
             batches[key] = batch;
         }
         batch.Add(data);
     }
 
-    private void ClearBatches()
+    public void Clear()
     {
         foreach (var batch in batches.Values) batch.Clear();
     }

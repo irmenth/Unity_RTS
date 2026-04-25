@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -13,25 +14,6 @@ public class UnitBus : MonoBehaviour
     [SerializeField] private GameObject blueUnitPrefab;
     [SerializeField] private GameObject whiteUnitPrefab;
 
-    private void UpdateArrivedBurst()
-    {
-        if (math.abs(destRadius) < 1e-6f || arrived) return;
-
-        NativeArray<bool> tarrived = new(1, Allocator.TempJob);
-
-        UpdateArrivedJob job = new(
-            tarrived,
-            UnitRegister.instance.positions,
-            UnitRegister.instance.indexer,
-            destination,
-            destRadius
-            );
-        job.Schedule().Complete();
-        arrived = tarrived[0];
-
-        tarrived.Dispose();
-    }
-
     private void UpdateUnitGridIndexBurst()
     {
         UpdateUnitGridIndexJob job = new(
@@ -42,7 +24,7 @@ public class UnitBus : MonoBehaviour
             UnitRegister.instance.positions,
             UnitRegister.instance.dgIndices,
             UnitRegister.instance.ogIndices
-            );
+        );
         job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
     }
 
@@ -55,7 +37,7 @@ public class UnitBus : MonoBehaviour
             FF.cellToUnit.AsParallelWriter(),
             UnitRegister.instance.positions,
             UnitRegister.instance.radii
-            );
+        );
         job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
     }
 
@@ -66,21 +48,47 @@ public class UnitBus : MonoBehaviour
             UnitRegister.instance.dgIndices,
             UnitRegister.instance.speeds,
             UnitRegister.instance.curMaxSpeeds
-            );
+        );
         job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
     }
 
-    private void UpdateUnitDirAccBurst(NativeArray<float2> dirMap)
+    private readonly List<(int unitCount, NativeArray<float2> dirMap, ulong dirMapID, float2 destination, float destRadius, float existTimer)> moveList = new();
+
+    private void UpdateUnitDirAccBurst()
     {
-        UpdateUnitDirAccJob job = new(
-            UnitRegister.instance.enableMap,
-            dirMap,
-            UnitRegister.instance.dgIndices,
-            UnitRegister.instance.dirAccs,
-            UnitRegister.instance.curMaxSpeeds,
-            FF.dgSize
+        for (int i = 0; i < moveList.Count; i++)
+        {
+            if (moveList[i].existTimer > 120)
+            {
+                moveList[i].dirMap.Dispose();
+                moveList.RemoveAtSwapBack(i);
+                i--;
+                continue;
+            }
+
+            var dirMap = moveList[i].dirMap;
+            var dirMapID = moveList[i].dirMapID;
+            var destination = moveList[i].destination;
+            var destRadius = moveList[i].destRadius;
+            var existTimer = moveList[i].existTimer;
+
+            UpdateUnitDirAccJob job = new(
+                dirMap,
+                UnitRegister.instance.dirMapIndices,
+                dirMapID,
+                UnitRegister.instance.dgIndices,
+                UnitRegister.instance.dirAccs,
+                UnitRegister.instance.curMaxSpeeds,
+                FF.dgSize,
+                destination,
+                destRadius,
+                UnitRegister.instance.positions,
+                UnitRegister.instance.arrived
             );
-        job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
+            job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
+
+            moveList[i] = (UnitRegister.instance.selectedList.Length, dirMap, dirMapID, destination, destRadius, existTimer + Time.deltaTime);
+        }
     }
 
     private void UpdateUnitBoidsAccBurst()
@@ -148,27 +156,6 @@ public class UnitBus : MonoBehaviour
         job.Schedule(UnitRegister.instance.unitTrans).Complete();
     }
 
-    private float2 destination;
-    private float destRadius;
-    private bool arrived = true;
-    private readonly static float sqrt2 = math.sqrt(2);
-
-    private void SetDestination(MoveToEvent evt)
-    {
-        if (UnitRegister.instance.indexer + 1 <= 0) return;
-
-        destination = evt.destination;
-        arrived = false;
-
-        float averageRadius = 0;
-        for (int i = 0; i < UnitRegister.instance.indexer + 1; i++)
-        {
-            averageRadius += UnitRegister.instance.radii[i];
-        }
-        averageRadius /= UnitRegister.instance.indexer + 1;
-        destRadius = 0.8f * averageRadius * sqrt2 * math.ceil(math.sqrt(UnitRegister.instance.indexer + 1));
-    }
-
     public void InstantiateUnit(GenerateCommand cmd)
     {
         GameObject unit = cmd.unitType switch
@@ -180,8 +167,8 @@ public class UnitBus : MonoBehaviour
         };
         float radius = cmd.unitType switch
         {
-            UnitType.OrangeSmall => 0.8f,
-            UnitType.BlueSmall => 0.8f,
+            UnitType.OrangeSmall => 0.6f,
+            UnitType.BlueSmall => 0.6f,
             UnitType.White => 2f,
             _ => 0,
         };
@@ -189,7 +176,7 @@ public class UnitBus : MonoBehaviour
         for (int i = 0; i < cmd.count; i++)
         {
             Vector3 generationPos = new(cmd.pos.x, 0, cmd.pos.y);
-            GameObject go = Instantiate(unit, generationPos, Quaternion.identity);
+            GameObject go = UnitPool.instance.Instantiate(unit, generationPos, Quaternion.identity);
             UnitAgent agent = go.GetComponent<UnitAgent>();
             if (!agent)
             {
@@ -200,21 +187,51 @@ public class UnitBus : MonoBehaviour
         }
     }
 
-    public void Delete(DeleteCommand cmd)
-    {
-        UnitRegister.instance.readyDeleteLength[0] = 0;
+    private readonly static float sqrt2 = math.sqrt(2);
+    private ulong curDirMapID = 0;
 
-        DeleteJob job = new(
-            UnitRegister.instance.enableMap,
-            UnitRegister.instance.readyDelete,
-            UnitRegister.instance.readyDeleteLength
+    public void SetDestination(MoveCommand cmd)
+    {
+        if (UnitRegister.instance.indexer + 1 <= 0) return;
+        int count = UnitRegister.instance.selectedList.Length;
+        if (count <= 0) return;
+
+        float2 destination = cmd.pos;
+        int destIndex = FF.WorldToDGIndex(destination);
+
+        AssignDirMapIndexJob job = new(
+            UnitRegister.instance.selectedMap,
+            UnitRegister.instance.dirMapIndices,
+            UnitRegister.instance.arrived,
+            curDirMapID
         );
         job.Schedule(UnitRegister.instance.indexer + 1, 64).Complete();
 
-        for (int i = 0; i < UnitRegister.instance.readyDeleteLength[0]; i++)
+        var dirMap = FF.GenerateFlowFieldBurst(FF.GenerateHeatMapBurst(ref destIndex));
+        destination = FF.directionGrid[destIndex].worldPos;
+        float averageRadius = 0;
+        for (int i = 0; i < count; i++)
         {
-            Destroy(UnitRegister.instance.unitTrans[UnitRegister.instance.readyDelete[i]].gameObject);
-            UnitRegister.instance.Unregister(UnitRegister.instance.readyDelete[i]);
+            int index = UnitRegister.instance.selectedList[i];
+            averageRadius += UnitRegister.instance.radii[index];
+        }
+        averageRadius /= count;
+        float destRadius = averageRadius * sqrt2 * math.ceil(math.sqrt(count));
+
+        moveList.Add((count, dirMap, curDirMapID, destination, destRadius, 0));
+        curDirMapID++;
+    }
+
+    public void Delete()
+    {
+        IndicatorBatchManager.instance.Clear();
+        InstancedAniManager.instance.Clear();
+
+        for (int i = UnitRegister.instance.selectedList.Length - 1; i >= 0; i--)
+        {
+            int index = UnitRegister.instance.selectedList[i];
+            UnitPool.instance.Destroy(UnitRegister.instance.unitTrans[index].gameObject);
+            UnitRegister.instance.Unregister(index);
         }
     }
 
@@ -222,8 +239,6 @@ public class UnitBus : MonoBehaviour
     {
         if (instance != null) Destroy(instance.gameObject);
         instance = this;
-
-        EventBus.Subscribe<MoveToEvent>(SetDestination);
     }
 
     private FlowField FF => GridController.instance.flowField;
@@ -232,12 +247,11 @@ public class UnitBus : MonoBehaviour
     {
         if (UnitRegister.instance.indexer + 1 <= 0) return;
 
-        UpdateArrivedBurst();
         UpdateCellToUnitBurst();
         UpdateUnitGridIndexBurst();
 
         UpdateUnitCurMaxSpeedBurst();
-        // UpdateUnitDirAccBurst();
+        UpdateUnitDirAccBurst();
         UpdateUnitBoidsAccBurst();
         UpdateUnitVelocitiesBurst();
         UpdateUnitPositionBurst();
@@ -247,7 +261,10 @@ public class UnitBus : MonoBehaviour
 
     private void OnDestroy()
     {
-        EventBus.Unsubscribe<MoveToEvent>(SetDestination);
+        for (int i = 0; i < moveList.Count; i++)
+        {
+            moveList[i].dirMap.Dispose();
+        }
 
         instance = null;
     }

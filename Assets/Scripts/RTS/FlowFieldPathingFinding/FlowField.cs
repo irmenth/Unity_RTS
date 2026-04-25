@@ -116,46 +116,55 @@ public class FlowField
 
                     if (!hasRecordImpassible && dgBoxHitBuffter[i].gameObject.layer == impassibleLayer)
                     {
-                        int subCellHitCount = 0;
+                        // int subCellHitCount = 0;
                         for (int dx = -1; dx <= 1; dx++)
                         {
                             for (int dy = -1; dy <= 1; dy++)
                             {
-                                if (subCellHitCount >= 4) break;
+                                // if (subCellHitCount >= 4) break;
 
                                 Vector3 curSubCellPos = detectPos + new Vector3(dx * subCellDiameter, 0, dy * subCellDiameter);
                                 if (Physics.Raycast(curSubCellPos, Vector3.up, out RaycastHit hit, 100f, 1 << impassibleLayer))
-                                    subCellHitCount++;
+                                {
+                                    costMap[index] = float.PositiveInfinity;
+                                    hasRecordImpassible = true;
+                                    hasRecordRough = true;
+                                    // subCellHitCount++;
+                                }
                             }
                         }
 
-                        if (subCellHitCount >= 4)
-                        {
-                            costMap[index] = float.PositiveInfinity;
-                            hasRecordImpassible = true;
-                            hasRecordRough = true;
-                        }
+                        // if (subCellHitCount >= 4)
+                        // {
+                        //     costMap[index] = float.PositiveInfinity;
+                        //     hasRecordImpassible = true;
+                        //     hasRecordRough = true;
+                        // }
                     }
 
                     if (!hasRecordRough && dgBoxHitBuffter[i].gameObject.layer == roughLayer)
                     {
-                        int subCellHitCount = 0;
+                        // int subCellHitCount = 0;
                         for (int dx = -1; dx <= 1; dx++)
                         {
                             for (int dy = -1; dy <= 1; dy++)
                             {
-                                if (subCellHitCount >= 4) break;
+                                // if (subCellHitCount >= 4) break;
 
                                 Vector3 curSubCellPos = detectPos + new Vector3(dx * subCellDiameter, 0, dy * subCellDiameter);
                                 if (Physics.Raycast(curSubCellPos, Vector3.up, out RaycastHit hit, 100f, 1 << roughLayer))
-                                    subCellHitCount++;
+                                {
+                                    costMap[index] = 2f;
+                                    hasRecordRough = true;
+                                    // subCellHitCount++;
+                                }
                             }
-                        }
 
-                        if (subCellHitCount >= 4)
-                        {
-                            costMap[index] = 2f;
-                            hasRecordRough = true;
+                            // if (subCellHitCount >= 4)
+                            // {
+                            //     costMap[index] = 2f;
+                            //     hasRecordRough = true;
+                            // }
                         }
                     }
                 }
@@ -163,7 +172,7 @@ public class FlowField
         }
     }
 
-    public NativeArray<float> GenerateHeatMapBurst(int destinationGridIndex)
+    public NativeArray<float> GenerateHeatMapBurst(ref int destinationGridIndex)
     {
         int size = dgSize.x * dgSize.y;
         NativeArray<float> heatMap = new(size, Allocator.Persistent);
@@ -184,6 +193,7 @@ public class FlowField
             heatMap
             );
         job.Schedule().Complete();
+        destinationGridIndex = destination[0];
 
         openList.Dispose();
         inOpenList.Dispose();
@@ -200,6 +210,8 @@ public class FlowField
 
         FlowFieldJob job = new(dgSize, heatMap, dirMap);
         job.Schedule(size, 64).Complete();
+
+        heatMap.Dispose();
 
         return dirMap;
     }

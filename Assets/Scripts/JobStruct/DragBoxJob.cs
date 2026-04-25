@@ -6,18 +6,18 @@ using Unity.Mathematics;
 [BurstCompile]
 public struct DragBoxJob : IJobParallelFor
 {
-    private NativeArray<bool> enableMap;
+    private NativeArray<bool> selectedMap;
     [ReadOnly] private NativeArray<float2> positions;
     private readonly float2 ld, ru;
 
     public DragBoxJob(
-        NativeArray<bool> enableMap,
+        NativeArray<bool> selectedMap,
         NativeArray<float2> positions,
         float2 ld,
         float2 ru
     )
     {
-        this.enableMap = enableMap;
+        this.selectedMap = selectedMap;
         this.positions = positions;
         this.ld = ld;
         this.ru = ru;
@@ -25,10 +25,10 @@ public struct DragBoxJob : IJobParallelFor
 
     public void Execute(int index)
     {
-        enableMap[index] = false;
+        selectedMap[index] = false;
         if (positions[index].x >= ld.x && positions[index].x <= ru.x && positions[index].y >= ld.y && positions[index].y <= ru.y)
         {
-            enableMap[index] = true;
+            selectedMap[index] = true;
         }
     }
 }

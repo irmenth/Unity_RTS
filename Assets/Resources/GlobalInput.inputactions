@@ -34,6 +34,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "GeneratePinkUnit",
+                    "type": "Button",
+                    "id": "d44c0aaa-241b-4ebb-84bf-c812cd4ed536",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "CameraMove",
                     "type": "Button",
                     "id": "cf84c709-bdd3-4345-abf9-5609733d9acb",
@@ -145,6 +154,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "GenerateBlueUnit",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d39cf9f8-75af-4f5b-97c7-94e7b335d34a",
+                    "path": "<Keyboard>/w",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "GeneratePinkUnit",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

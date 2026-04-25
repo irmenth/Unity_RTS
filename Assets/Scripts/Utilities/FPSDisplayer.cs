@@ -12,17 +12,14 @@ public class FPSDisplayer : MonoBehaviour
     }
 
     private float timer;
-    private int frames;
 
     private void Update()
     {
-        if (timer >= 0.5)
+        if (timer >= 0.2)
         {
-            text.text = $"FPS: {frames * 2}";
+            text.text = $"FPS: {1 / Time.deltaTime:0.0}";
             timer = 0;
-            frames = 0;
         }
-        frames++;
         timer += Time.deltaTime;
     }
 }

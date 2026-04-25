@@ -6,33 +6,54 @@ using Unity.Mathematics;
 [BurstCompile]
 public struct UpdateUnitDirAccJob : IJobParallelFor
 {
-    [ReadOnly] private NativeArray<bool> enableMap;
     [ReadOnly] private NativeArray<float2> dirMap;
+    [ReadOnly] private NativeArray<ulong> dirMapIndices;
+    private readonly ulong dirMapID;
     [ReadOnly] private NativeArray<int> dgIndices;
     private NativeArray<float2> dirAccs;
     [ReadOnly] private NativeArray<float> curMaxSpeeds;
     private readonly int2 dgSize;
+    private readonly float2 destination;
+    private readonly float destRadius;
+    [ReadOnly] private NativeArray<float2> positions;
+    private NativeArray<bool> arrived;
 
     public UpdateUnitDirAccJob(
-        NativeArray<bool> enableMap,
         NativeArray<float2> dirMap,
+        NativeArray<ulong> dirMapIndices,
+        ulong dirMapID,
         NativeArray<int> dgIndices,
         NativeArray<float2> dirAccs,
         NativeArray<float> curMaxSpeeds,
-        int2 dgSize
+        int2 dgSize,
+        float2 destination,
+        float destRadius,
+        NativeArray<float2> positions,
+        NativeArray<bool> arrived
     )
     {
-        this.enableMap = enableMap;
         this.dirMap = dirMap;
+        this.dirMapIndices = dirMapIndices;
+        this.dirMapID = dirMapID;
         this.dgIndices = dgIndices;
         this.dirAccs = dirAccs;
         this.curMaxSpeeds = curMaxSpeeds;
         this.dgSize = dgSize;
+        this.destination = destination;
+        this.destRadius = destRadius;
+        this.positions = positions;
+        this.arrived = arrived;
     }
 
     public void Execute(int index)
     {
-        if (!enableMap[index]) return;
+        if (dirMapID != dirMapIndices[index]) return;
+        if (arrived[index])
+        {
+            dirAccs[index] = 0;
+            return;
+        }
+        arrived[index] = math.lengthsq(positions[index] - destination) < destRadius * destRadius;
 
         int2 dgPos = new(dgIndices[index] / dgSize.y, dgIndices[index] % dgSize.y);
         float2 baseDir = dirMap[dgIndices[index]];
@@ -68,6 +89,6 @@ public struct UpdateUnitDirAccJob : IJobParallelFor
             }
         }
 
-        dirAccs[index] += 4 * curMaxSpeeds[index] * baseDir;
+        dirAccs[index] = 4 * curMaxSpeeds[index] * baseDir;
     }
 }

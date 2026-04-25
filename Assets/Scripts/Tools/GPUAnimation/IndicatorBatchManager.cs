@@ -29,6 +29,11 @@ public class IndicatorBatchManager : MonoBehaviour
         list.Add(worldMatrix);
     }
 
+    public void Clear()
+    {
+        foreach (var l in instance.batches.Values) l.Clear();
+    }
+
     public void Clear(Mesh mesh, Material material, Matrix4x4 worldMatrix)
     {
         var key = (mesh, material);

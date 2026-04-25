@@ -46,7 +46,7 @@ public static class EventBus
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[EventBus] ({typeof(T).Name}): {e.Message}");
+                    Debug.LogError($"[EventBus] ({typeof(T).Name}): {e.StackTrace}\n{e.Message}");
                 }
             }
         }
